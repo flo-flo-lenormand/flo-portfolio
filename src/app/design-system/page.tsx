@@ -1,4 +1,10 @@
 import type { Metadata } from "next";
+import { Space_Grotesk, Syne, DM_Serif_Display, Fraunces } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], display: "swap" });
+const syne = Syne({ subsets: ["latin"], display: "swap" });
+const dmSerifDisplay = DM_Serif_Display({ subsets: ["latin"], display: "swap", weight: "400" });
+const fraunces = Fraunces({ subsets: ["latin"], display: "swap", weight: "600" });
 
 export const metadata: Metadata = {
   title: "Design System – Flo Lenormand",
@@ -92,6 +98,60 @@ export default function DesignSystem() {
           <Label>title size — text-[28px] · tracking-[-0.02em] · leading-tight</Label>
           <Label>prose body — text-lg (18px) · leading-[1.8]</Label>
         </div>
+      </Section>
+
+      {/* ─── Title Font Exploration ─────────────────────────── */}
+      <Section title="Title Font Exploration" note="Geist body is fixed — pick a title font">
+        {[
+          {
+            label: "A — Inter (current)",
+            note: "Clean UI font. Neutral to the point of feeling like a template.",
+            titleClass: spaceGrotesk.className,
+            useInter: true,
+          },
+          {
+            label: "B — Space Grotesk",
+            note: "Geometric but human. Irregular details give it warmth. Common in design portfolios for a reason.",
+            titleClass: spaceGrotesk.className,
+            useInter: false,
+          },
+          {
+            label: "C — Syne",
+            note: "Very distinctive. Wide, confident, slightly unconventional. Makes a statement.",
+            titleClass: syne.className,
+            useInter: false,
+          },
+          {
+            label: "D — DM Serif Display",
+            note: "Elegant serif for display sizes only. Contrast with Geist body is striking. Very editorial.",
+            titleClass: dmSerifDisplay.className,
+            useInter: false,
+          },
+          {
+            label: "E — Fraunces",
+            note: "The wonky one. Optical size variable font named after a Joyce poem. Warm, literary, distinctive.",
+            titleClass: fraunces.className,
+            useInter: false,
+          },
+        ].map((opt, i) => (
+          <div key={opt.label} className={i < 4 ? "mb-12" : ""}>
+            <p className="text-xs font-mono text-gray-500 mb-1">{opt.label}</p>
+            <p className="text-xs text-gray-400 mb-5 max-w-sm">{opt.note}</p>
+            <div className={opt.useInter ? "" : opt.titleClass}>
+              <p className="text-[28px] font-semibold text-gray-900 leading-tight tracking-[-0.02em] mb-1">
+                I built a dashboard with AI agents, then deleted everything
+              </p>
+              <p className="text-[28px] font-semibold text-gray-900 leading-tight tracking-[-0.02em] mb-4">
+                Design principles helped me stop bad design behavior
+              </p>
+            </div>
+            <p className="text-lg text-gray-800 leading-[1.8]" style={{ fontFamily: "var(--font-geist-var), ui-sans-serif, sans-serif" }}>
+              Body text stays in Geist — only the title changes. Notice how the personality of the
+              title shifts the entire mood of the page.
+            </p>
+            {i < 4 && <div className="mt-10 border-b border-gray-100" />}
+          </div>
+        ))}
       </Section>
 
       {/* ─── Color Exploration ──────────────────────────────── */}
