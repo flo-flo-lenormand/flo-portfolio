@@ -7,15 +7,36 @@ function getFaviconLink(): HTMLLinkElement | null {
   return document.querySelector<HTMLLinkElement>('link[rel*="icon"]');
 }
 
+function makeCircularFavicon(src: string, size = 64): Promise<string> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    const img = new window.Image();
+    img.onload = () => {
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, 0, 0, size, size);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.src = src;
+  });
+}
+
 export default function NavName() {
   const originalHref = useRef<string | null>(null);
+  const circularHref = useRef<string | null>(null);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = async () => {
     const link = getFaviconLink();
-    if (link) {
-      originalHref.current = link.href;
-      link.href = "/avatar.jpg";
+    if (!link) return;
+    if (!originalHref.current) originalHref.current = link.href;
+    if (!circularHref.current) {
+      circularHref.current = await makeCircularFavicon("/avatar.jpg");
     }
+    link.href = circularHref.current;
   };
 
   const handleMouseLeave = () => {
