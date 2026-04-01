@@ -1,40 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { AnimatePresence, motion } from "motion/react";
+
+function getFaviconLink(): HTMLLinkElement | null {
+  return document.querySelector<HTMLLinkElement>('link[rel*="icon"]');
+}
 
 export default function NavName() {
-  const [hovered, setHovered] = useState(false);
+  const originalHref = useRef<string | null>(null);
+
+  const handleMouseEnter = () => {
+    const link = getFaviconLink();
+    if (link) {
+      originalHref.current = link.href;
+      link.href = "/avatar.jpg";
+    }
+  };
+
+  const handleMouseLeave = () => {
+    const link = getFaviconLink();
+    if (link && originalHref.current) {
+      link.href = originalHref.current;
+    }
+  };
 
   return (
     <Link
       href="/"
-      className="text-gray-900 font-medium hover:text-gray-600 transition-colors active:scale-[0.96] transition-transform duration-150 ease-out inline-flex items-center gap-0"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="text-gray-900 font-medium hover:text-gray-600 transition-colors active:scale-[0.96] transition-transform duration-150 ease-out inline-block"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <AnimatePresence>
-        {hovered && (
-          <motion.div
-            className="overflow-hidden rounded-full flex-shrink-0"
-            initial={{ width: 0, opacity: 0, marginRight: 0 }}
-            animate={{ width: 18, opacity: 1, marginRight: 6 }}
-            exit={{ width: 0, opacity: 0, marginRight: 0 }}
-            transition={{ type: "spring", duration: 0.35, bounce: 0.1 }}
-          >
-            <Image
-              src="/avatar.jpg"
-              alt="Flo Lenormand"
-              width={18}
-              height={18}
-              className="object-cover rounded-full"
-              style={{ minWidth: 18 }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
       Flo Lenormand
     </Link>
   );
