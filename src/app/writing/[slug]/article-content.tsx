@@ -33,7 +33,11 @@ export default function ArticleContent({ title, date, content }: Props) {
     >
       <motion.div
         variants={variants}
-        transition={{ type: "spring", duration: 0.4, bounce: 0 }}
+        transition={{
+          y: { type: "spring", duration: 0.4, bounce: 0 },
+          filter: { type: "spring", duration: 0.4, bounce: 0 },
+          opacity: { duration: 0.7, ease: [0.25, 0, 0, 1] },
+        }}
       >
         <Link
           href="/"
@@ -46,7 +50,11 @@ export default function ArticleContent({ title, date, content }: Props) {
       <header className="mb-10">
         <motion.h1
           variants={variants}
-          transition={{ type: "spring", duration: 0.5, bounce: 0 }}
+          transition={{
+            y: { type: "spring", duration: 0.5, bounce: 0 },
+            filter: { type: "spring", duration: 0.5, bounce: 0 },
+            opacity: { duration: 0.9, ease: [0.25, 0, 0, 1] },
+          }}
           className="text-[32px] md:text-[48px] font-extrabold text-gray-900 leading-tight tracking-tight mb-3"
         >
           {title}
@@ -54,7 +62,11 @@ export default function ArticleContent({ title, date, content }: Props) {
 
         <motion.time
           variants={variants}
-          transition={{ type: "spring", duration: 0.5, bounce: 0 }}
+          transition={{
+            y: { type: "spring", duration: 0.5, bounce: 0 },
+            filter: { type: "spring", duration: 0.5, bounce: 0 },
+            opacity: { duration: 0.9, ease: [0.25, 0, 0, 1] },
+          }}
           className="text-sm text-gray-400 block"
         >
           {date}
@@ -63,7 +75,11 @@ export default function ArticleContent({ title, date, content }: Props) {
 
       <motion.div
         variants={variants}
-        transition={{ type: "spring", duration: 0.6, bounce: 0 }}
+        transition={{
+          y: { type: "spring", duration: 0.6, bounce: 0 },
+          filter: { type: "spring", duration: 0.6, bounce: 0 },
+          opacity: { duration: 1.1, ease: [0.25, 0, 0, 1] },
+        }}
         className="prose"
         dangerouslySetInnerHTML={{ __html: content }}
       />
