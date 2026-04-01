@@ -1,7 +1,7 @@
 ---
 title: "How I made $240 in one week with OpenClaw"
 date: "2026-03-07"
-description: "I gave an AI agent a real job: sell my family's clothes on Vinted. It worked."
+description: "I gave an AI agent a real job: sell my family's clothes online. It made $240, negotiated in Italian, and ordered its own shipping supplies."
 ---
 
 I recently wanted to see what happens when you give an AI agent a real job.

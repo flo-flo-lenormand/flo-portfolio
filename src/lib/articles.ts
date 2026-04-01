@@ -12,6 +12,7 @@ export interface Article {
   date: string;
   description: string;
   external?: string;
+  published?: boolean;
   content?: string;
 }
 
@@ -31,8 +32,10 @@ export function getAllArticles(): Article[] {
         date: data.date,
         description: data.description || "",
         external: data.external || undefined,
+        published: data.published !== false,
       };
-    });
+    })
+    .filter((article) => article.published !== false);
 
   return articles.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -55,6 +58,7 @@ export async function getArticleBySlug(
     date: data.date,
     description: data.description || "",
     external: data.external || undefined,
+    published: data.published !== false,
     content: contentHtml,
   };
 }

@@ -13,11 +13,11 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "Flo Lenormand",
   description:
-    "Product Designer at Meta. Designing AI agents at MSL. Writing about design, AI, and the things I get wrong.",
+    "Flo Lenormand - Product Designer. I made message bubbles safe, then expressive, now smart. Writing about craft, AI, and what I learn along the way.",
   openGraph: {
     title: "Flo Lenormand",
     description:
-      "Product Designer at Meta. Designing AI agents at MSL. Writing about design, AI, and the things I get wrong.",
+      "Flo Lenormand - Product Designer. I made message bubbles safe, then expressive, now smart. Writing about craft, AI, and what I learn along the way.",
     type: "website",
   },
 };

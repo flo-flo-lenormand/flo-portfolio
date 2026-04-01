@@ -2,6 +2,7 @@
 title: "I built a dashboard with AI agents, then deleted everything"
 date: "2026-03-16"
 description: "The paradox of building with AI - you can build so fast that you outrun your actual needs."
+published: false
 ---
 
 I spent weeks building a personal productivity dashboard with Claude Code. It had everything:

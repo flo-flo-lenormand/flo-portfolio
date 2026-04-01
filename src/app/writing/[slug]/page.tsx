@@ -42,6 +42,10 @@ export default async function ArticlePage({
     notFound();
   }
 
+  if (article.published === false) {
+    notFound();
+  }
+
   const date = new Date(article.date).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",

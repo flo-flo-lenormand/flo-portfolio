@@ -35,6 +35,12 @@
   /* ── Transitions ─────────────────────────────────────────── */
   --duration-colors: 150ms;        /* transition-colors default */
   --duration-decoration: 0.2s;     /* prose link underline */
+
+  /* ── Bubble colors ───────────────────────────────────────── */
+  --color-bubble-blue: #007aff;
+  --color-bubble-blue-text: #ffffff;
+  --color-bubble-gray: var(--color-gray-200);
+  --color-bubble-gray-text: var(--color-gray-900);
 }
 
 html {

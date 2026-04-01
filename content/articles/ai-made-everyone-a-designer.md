@@ -1,7 +1,7 @@
 ---
 title: "AI made everyone a designer. It didn't teach anyone taste."
 date: "2026-03-22"
-description: "Being able to generate something is not the same as understanding if it's good."
+description: "Anyone can make a Figma mock now. Almost nobody can tell you if it's good."
 ---
 
 Recently, I've been seeing more Figma mocks or prototypes shared by people who aren't designers. And I'm really glad everyone can turn any idea into something visual.
