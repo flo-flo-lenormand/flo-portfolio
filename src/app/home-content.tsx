@@ -29,7 +29,7 @@ const item = {
 const itemTransition = {
   y: { type: "spring" as const, duration: 0.4, bounce: 0 },
   filter: { type: "spring" as const, duration: 0.4, bounce: 0 },
-  opacity: { duration: 0.7, ease: [0.25, 0, 0, 1] as number[] },
+  opacity: { duration: 0.7, ease: [0.25, 0, 0, 1] as [number, number, number, number] },
 };
 
 export default function HomeContent({ articles }: { articles: Article[] }) {
