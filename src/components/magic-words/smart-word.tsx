@@ -37,10 +37,11 @@ export default function SmartWord() {
       }, delay);
       return () => clearTimeout(timer);
     } else {
-      // Full word shown — pause then move to next
+      // Full word shown — jump straight to first char of next word, no empty frame
       const timer = setTimeout(() => {
-        setDisplayed("");
-        setWordIndex((i) => (i + 1) % WORDS.length);
+        const nextIndex = (wordIndex + 1) % WORDS.length;
+        setWordIndex(nextIndex);
+        setDisplayed(WORDS[nextIndex][0]);
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -49,11 +50,12 @@ export default function SmartWord() {
   return (
     <span
       className="inline-block cursor-default"
+      style={{ color: "inherit" }}
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
       onClick={() => setActive((v) => !v)}
     >
-      {active ? displayed : "smart"}
+      {active ? displayed || "smart" : "smart"}
     </span>
   );
 }
