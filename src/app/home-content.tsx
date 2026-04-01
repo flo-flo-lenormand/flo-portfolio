@@ -73,7 +73,7 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
   return (
     <div className="pt-20">
       {/* Title */}
-      <section className="mb-16">
+      <section className="mb-6">
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
           {[
             { text: "I made message bubbles safe", delay: 0.15 },
