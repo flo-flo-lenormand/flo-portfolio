@@ -49,7 +49,7 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
         </h1>
         <div className="prose">
           <p>
-            Product designer at Meta, working on AI agents at Meta Superintelligence Labs. Working hard to automate my design workflow so I can go surfing.
+            Product designer at Meta, working on AI agents at Meta Superintelligence Labs (MSL). Working hard to automate my design workflow so I can go surfing.
           </p>
         </div>
       </motion.section>
