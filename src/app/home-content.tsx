@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
+import { messages } from "@/lib/chat-data";
 
 interface Article {
   slug: string;
@@ -30,28 +31,47 @@ const lineTransition = (delay: number) => ({
   opacity: { ...fade, delay },
 });
 
-const articleListVariants = {
+const listVariants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.07 } },
 };
 
-const articleVariant = {
+const listItemVariant = {
   hidden: { opacity: 0, y: 12, filter: "blur(4px)" },
   visible: { opacity: 1, y: 0, filter: "blur(0px)" },
 };
 
-const articleTransition = {
+const listItemTransition = {
   y: spring,
   filter: spring,
   opacity: fade,
 };
 
+function Toggle({ label, open, onClick }: { label: string; open: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+    >
+      <span>{label}</span>
+      <motion.span
+        animate={{ rotate: open ? 180 : 0 }}
+        transition={spring}
+        className="inline-block"
+      >
+        ↓
+      </motion.span>
+    </button>
+  );
+}
+
 export default function HomeContent({ articles }: { articles: Article[] }) {
-  const [open, setOpen] = useState(false);
+  const [writingOpen, setWritingOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <div className="pt-20">
-      {/* Intro */}
+      {/* Title */}
       <section className="mb-16">
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
           {[
@@ -85,35 +105,61 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
         </motion.div>
       </section>
 
-      {/* Writing toggle */}
+      {/* Toggles */}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={lineVariant}
         transition={lineTransition(1.55)}
       >
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8 cursor-pointer"
-        >
-          <span>Writing</span>
-          <motion.span
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ type: "spring", duration: 0.4, bounce: 0 }}
-            className="inline-block"
-          >
-            ↓
-          </motion.span>
-        </button>
+        <div className="flex gap-6 mb-8">
+          <Toggle label="About" open={aboutOpen} onClick={() => setAboutOpen((v) => !v)} />
+          <Toggle label="Writing" open={writingOpen} onClick={() => setWritingOpen((v) => !v)} />
+        </div>
 
+        {/* About panel */}
         <AnimatePresence>
-          {open && (
+          {aboutOpen && (
             <motion.div
-              key="articles"
+              key="about"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={spring}
+              className="mb-8 space-y-5"
+            >
+              {messages.map((message, index) => {
+                const prevMessage = messages[index - 1];
+                const isNewGroup = !prevMessage || prevMessage.sender !== message.sender;
+                const isFlo = message.sender === "flo";
+
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex gap-6 items-baseline${isNewGroup && index !== 0 ? " mt-8" : ""}`}
+                  >
+                    <span className="text-xs text-gray-400 uppercase tracking-widest w-8 shrink-0 pt-px">
+                      {isNewGroup ? (isFlo ? "Flo" : "Mum") : ""}
+                    </span>
+                    <p className="text-base md:text-lg text-gray-800 leading-relaxed">
+                      {message.text}
+                    </p>
+                  </div>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Writing panel */}
+        <AnimatePresence>
+          {writingOpen && (
+            <motion.div
+              key="writing"
               initial="hidden"
               animate="visible"
               exit="hidden"
-              variants={articleListVariants}
+              variants={listVariants}
             >
               <div className="space-y-6">
                 {articles.map((article) => {
@@ -126,8 +172,8 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
                     <motion.article
                       key={article.slug}
                       className="group"
-                      variants={articleVariant}
-                      transition={articleTransition}
+                      variants={listItemVariant}
+                      transition={listItemTransition}
                     >
                       <a
                         {...props}
