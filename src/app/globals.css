@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  /* ── Colors ──────────────────────────────────────────────── */
   --color-sand-50: #faf8f5;
   --color-sand-100: #f3efe8;
   --color-sand-200: #e8e0d4;
@@ -12,7 +13,18 @@
   --color-sand-800: #3d342a;
   --color-sand-900: #1f1a14;
 
+  /* ── Typography ──────────────────────────────────────────── */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Spacing ─────────────────────────────────────────────── */
+  --spacing-page-top: 2rem;        /* pt-8  — all pages */
+  --spacing-section-gap: 4rem;     /* mb-16 — intro section */
+  --spacing-content-bottom: 5rem;  /* pb-20 — main content */
+  --spacing-container-x: 1.5rem;  /* px-6  — side padding */
+
+  /* ── Transitions ─────────────────────────────────────────── */
+  --duration-colors: 150ms;        /* transition-colors default */
+  --duration-decoration: 0.2s;     /* prose link underline */
 }
 
 html {
