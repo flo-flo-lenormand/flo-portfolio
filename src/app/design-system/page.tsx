@@ -6,16 +6,14 @@ export const metadata: Metadata = {
 };
 
 const colors = [
-  { name: "sand-50", hex: "#faf8f5", textClass: "text-sand-900" },
-  { name: "sand-100", hex: "#f3efe8", textClass: "text-sand-900" },
-  { name: "sand-200", hex: "#e8e0d4", textClass: "text-sand-900" },
-  { name: "sand-300", hex: "#d4c8b4", textClass: "text-sand-900" },
-  { name: "sand-400", hex: "#b8a68a", textClass: "text-sand-900" },
-  { name: "sand-500", hex: "#9a8568", textClass: "text-sand-50" },
-  { name: "sand-600", hex: "#7a6a52", textClass: "text-sand-50" },
-  { name: "sand-700", hex: "#5c4f3d", textClass: "text-sand-50" },
-  { name: "sand-800", hex: "#3d342a", textClass: "text-sand-50" },
-  { name: "sand-900", hex: "#1f1a14", textClass: "text-sand-50" },
+  { name: "gray-50",  hex: "#fafafa", role: "Page background",               textClass: "text-gray-900" },
+  { name: "gray-100", hex: "#f4f4f5", role: "Subtle surface",                textClass: "text-gray-900" },
+  { name: "gray-200", hex: "#e4e4e7", role: "Borders · dividers · selection · underlines", textClass: "text-gray-900" },
+  { name: "gray-400", hex: "#a1a1aa", role: "Muted · metadata · dates",      textClass: "text-gray-900" },
+  { name: "gray-500", hex: "#71717a", role: "Secondary text · nav · footer", textClass: "text-gray-50" },
+  { name: "gray-600", hex: "#52525b", role: "Hover · intro text · blockquote", textClass: "text-gray-50" },
+  { name: "gray-800", hex: "#27272a", role: "Body · prose text",             textClass: "text-gray-50" },
+  { name: "gray-900", hex: "#18181b", role: "Headings · primary text",       textClass: "text-gray-50" },
 ];
 
 function Section({
@@ -28,12 +26,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="py-12 border-b border-sand-200 last:border-b-0">
+    <section className="py-12 border-b border-gray-200 last:border-b-0">
       <div className="flex items-baseline gap-4 mb-8">
-        <h2 className="text-xs font-medium tracking-widest uppercase text-sand-400">
+        <h2 className="text-xs font-medium tracking-widest uppercase text-gray-400">
           {title}
         </h2>
-        {note && <span className="text-xs text-sand-300">{note}</span>}
+        {note && <span className="text-xs text-gray-200">{note}</span>}
       </div>
       {children}
     </section>
@@ -42,7 +40,7 @@ function Section({
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs text-sand-400 font-mono mt-2">{children}</p>
+    <p className="text-xs text-gray-400 font-mono mt-2">{children}</p>
   );
 }
 
@@ -50,27 +48,27 @@ export default function DesignSystem() {
   return (
     <div className="pt-8 pb-24">
       <div className="mb-12">
-        <h1 className="text-2xl font-semibold text-sand-900 mb-2">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">
           Design System
         </h1>
-        <p className="text-sm text-sand-400">
+        <p className="text-sm text-gray-400">
           Living reference. Unlisted — accessible at /design-system.
         </p>
       </div>
 
       {/* ─── Font Exploration ───────────────────────────────── */}
       <Section title="Type Direction" note="✓ Locked — Inter title 28px · Geist body 18px">
-        <div className="flex gap-8 text-xs font-mono text-sand-400 mb-8">
+        <div className="flex gap-8 text-xs font-mono text-gray-400 mb-8">
           <span>Headings → Inter · font-sans</span>
           <span>Body / prose → Geist · font-body</span>
         </div>
 
-        <h2 className="text-[28px] font-semibold text-sand-900 leading-tight tracking-[-0.02em] mb-3">
+        <h2 className="text-[28px] font-semibold text-gray-900 leading-tight tracking-[-0.02em] mb-3">
           I built a dashboard with AI agents, then deleted everything
         </h2>
-        <time className="text-sm text-sand-400 block mb-8">March 16, 2026</time>
+        <time className="text-sm text-gray-400 block mb-8">March 16, 2026</time>
 
-        <p className="text-lg text-sand-800 leading-[1.8] mb-5">
+        <p className="text-lg text-gray-800 leading-[1.8] mb-5">
           I spent weeks building a personal productivity dashboard with Claude Code.
           It had everything: a background agent scanning my Google Chat every five minutes,
           a morning briefing system, a calendar integration, a creative assistant scraping
@@ -78,13 +76,13 @@ export default function DesignSystem() {
           Multiple agent pages, each with their own personality and avatar. Animated breathing
           dots. Mood indicators.
         </p>
-        <p className="text-lg text-sand-800 leading-[1.8] mb-5">
+        <p className="text-lg text-gray-800 leading-[1.8] mb-5">
           Then I started actually using it. The draft replies sat there unreviewed because
           I&apos;d already replied in GChat directly. The calendar section told me things I
           already knew from looking at my phone. The morning briefing was interesting but not
           actionable. So I deleted it. All of it.
         </p>
-        <p className="text-sm text-sand-500 leading-relaxed">
+        <p className="text-sm text-gray-500 leading-relaxed">
           The paradox of building with AI is that you can build so fast that you outrun your actual needs.
         </p>
 
@@ -150,8 +148,8 @@ export default function DesignSystem() {
           },
         ].map((palette) => (
           <div key={palette.label} className="mb-10 last:mb-0">
-            <p className="text-xs font-mono text-sand-500 mb-1">{palette.label}</p>
-            <p className="text-xs text-sand-400 mb-4">{palette.note}</p>
+            <p className="text-xs font-mono text-gray-500 mb-1">{palette.label}</p>
+            <p className="text-xs text-gray-400 mb-4">{palette.note}</p>
             <div className="grid grid-cols-10 gap-1 mb-3">
               {palette.steps.map((s) => (
                 <div key={s.label}>
@@ -159,7 +157,7 @@ export default function DesignSystem() {
                     className="h-10 rounded-sm"
                     style={{ backgroundColor: s.hex }}
                   />
-                  <p className="text-xs font-mono mt-1" style={{ color: "#9a8568", fontSize: "10px" }}>{s.label}</p>
+                  <p className="text-xs font-mono mt-1 text-gray-400" style={{ fontSize: "10px" }}>{s.label}</p>
                 </div>
               ))}
             </div>
@@ -181,68 +179,21 @@ export default function DesignSystem() {
       </Section>
 
       {/* ─── Colors ─────────────────────────────────────────── */}
-      <Section title="Colors" note="Sand palette — 10 steps">
-        <div className="grid grid-cols-5 gap-2">
+      <Section title="Colors" note="✓ Locked — Zinc gray · 8 steps · each with one role">
+        <div className="space-y-2">
           {colors.map((c) => (
-            <div key={c.name}>
+            <div key={c.name} className="flex items-center gap-4">
               <div
-                className={`h-16 rounded flex items-end p-2 ${c.textClass}`}
+                className={`w-12 h-8 rounded-sm shrink-0 flex items-center justify-center ${c.textClass}`}
                 style={{ backgroundColor: c.hex }}
               >
-                <span className="text-xs font-mono leading-none">{c.hex}</span>
+                <span style={{ fontSize: "9px" }} className="font-mono">{c.name.split("-")[1]}</span>
               </div>
-              <Label>{c.name}</Label>
+              <span className="text-xs font-mono text-gray-500 w-20 shrink-0">{c.name}</span>
+              <span className="text-xs font-mono text-gray-400 w-16 shrink-0">{c.hex}</span>
+              <span className="text-xs text-gray-400">{c.role}</span>
             </div>
           ))}
-        </div>
-
-        <div className="mt-8 space-y-2">
-          <p className="text-xs text-sand-400 font-mono mb-4">— Semantic usage</p>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-50 border border-sand-200" />
-            <span className="text-xs font-mono text-sand-500">bg-sand-50</span>
-            <span className="text-xs text-sand-400">Page background</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-900" />
-            <span className="text-xs font-mono text-sand-500">text-sand-900</span>
-            <span className="text-xs text-sand-400">Primary text, headings</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-800" />
-            <span className="text-xs font-mono text-sand-500">text-sand-800</span>
-            <span className="text-xs text-sand-400">Body prose text</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-700" />
-            <span className="text-xs font-mono text-sand-500">text-sand-700</span>
-            <span className="text-xs text-sand-400">Intro text, prose links</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-600" />
-            <span className="text-xs font-mono text-sand-500">text-sand-600</span>
-            <span className="text-xs text-sand-400">Hover states, blockquote text</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-500" />
-            <span className="text-xs font-mono text-sand-500">text-sand-500</span>
-            <span className="text-xs text-sand-400">Nav links, secondary text</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-400" />
-            <span className="text-xs font-mono text-sand-500">text-sand-400</span>
-            <span className="text-xs text-sand-400">Dates, footer links, meta</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-300" />
-            <span className="text-xs font-mono text-sand-500">border-sand-300 / decoration-sand-300</span>
-            <span className="text-xs text-sand-400">Link underlines, blockquote border</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 rounded-sm bg-sand-200 border border-sand-200" />
-            <span className="text-xs font-mono text-sand-500">border-sand-200</span>
-            <span className="text-xs text-sand-400">Dividers, footer border, ::selection</span>
-          </div>
         </div>
       </Section>
 
@@ -250,66 +201,66 @@ export default function DesignSystem() {
       <Section title="Typography" note="Inter — all sizes in use">
         <div className="space-y-6">
           <div>
-            <p className="text-2xl font-semibold text-sand-900 leading-tight">
+            <p className="text-2xl font-semibold text-gray-900 leading-tight">
               About / Article title — text-2xl font-semibold
             </p>
-            <Label>text-2xl · font-semibold · leading-tight · text-sand-900</Label>
+            <Label>text-2xl · font-semibold · leading-tight · text-gray-900</Label>
           </div>
 
           <div>
-            <p className="text-lg text-sand-700 leading-relaxed">
+            <p className="text-lg text-gray-600 leading-relaxed">
               Product Designer at Meta, designing AI agents.
             </p>
-            <Label>text-lg · font-normal · leading-relaxed · text-sand-700</Label>
+            <Label>text-lg · font-normal · leading-relaxed · text-gray-600</Label>
           </div>
 
           <div>
-            <p className="text-base text-sand-900 leading-snug">
+            <p className="text-base text-gray-900 leading-snug">
               Article title on home listing — text-base
             </p>
-            <Label>text-base · font-normal · leading-snug · text-sand-900</Label>
+            <Label>text-base · font-normal · leading-snug · text-gray-900</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-500 leading-relaxed">
+            <p className="text-sm text-gray-500 leading-relaxed">
               Article description — secondary text used below titles
             </p>
-            <Label>text-sm · font-normal · leading-relaxed · text-sand-500</Label>
+            <Label>text-sm · font-normal · leading-relaxed · text-gray-500</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400">
+            <p className="text-sm text-gray-400">
               Date / metadata — April 2025
             </p>
-            <Label>text-sm · text-sand-400</Label>
+            <Label>text-sm · text-gray-400</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-500">
+            <p className="text-sm text-gray-500">
               Nav links — Writing · About
             </p>
-            <Label>text-sm · text-sand-500</Label>
+            <Label>text-sm · text-gray-500</Label>
           </div>
 
           <div>
-            <p className="text-xs text-sand-400 tracking-widest uppercase font-medium">
+            <p className="text-xs text-gray-400 tracking-widest uppercase font-medium">
               Section label — tracking-widest uppercase
             </p>
-            <Label>text-xs · font-medium · tracking-widest · uppercase · text-sand-400</Label>
+            <Label>text-xs · font-medium · tracking-widest · uppercase · text-gray-400</Label>
           </div>
         </div>
 
         <div className="mt-10 space-y-3">
-          <p className="text-xs text-sand-400 font-mono mb-4">— Font features</p>
+          <p className="text-xs text-gray-400 font-mono mb-4">— Font features</p>
           <div className="flex gap-12">
             <div>
-              <p className="text-base text-sand-800" style={{ fontFeatureSettings: '"kern" 1, "liga" 1' }}>
+              <p className="text-base text-gray-800" style={{ fontFeatureSettings: '"kern" 1, "liga" 1' }}>
                 Waffle → efficient
               </p>
               <Label>kern + liga on (default)</Label>
             </div>
             <div>
-              <p className="text-base text-sand-800" style={{ fontFeatureSettings: '"kern" 0, "liga" 0' }}>
+              <p className="text-base text-gray-800" style={{ fontFeatureSettings: '"kern" 0, "liga" 0' }}>
                 Waffle → efficient
               </p>
               <Label>kern + liga off</Label>
@@ -322,57 +273,57 @@ export default function DesignSystem() {
       <Section title="Links" note="All interactive text states">
         <div className="space-y-6">
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Nav link (header)</p>
-            <div className="flex gap-6 text-sm text-sand-500">
-              <a href="#" className="hover:text-sand-800 transition-colors">Writing</a>
-              <a href="#" className="hover:text-sand-800 transition-colors">About</a>
+            <p className="text-sm text-gray-400 font-mono mb-3">— Nav link (header)</p>
+            <div className="flex gap-6 text-sm text-gray-500">
+              <a href="#" className="hover:text-gray-800 transition-colors">Writing</a>
+              <a href="#" className="hover:text-gray-800 transition-colors">About</a>
             </div>
-            <Label>text-sm · text-sand-500 → hover:text-sand-800 · transition-colors</Label>
+            <Label>text-sm · text-gray-500 → hover:text-gray-800 · transition-colors</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Logo / name link (header)</p>
-            <a href="#" className="text-sand-900 font-medium hover:text-sand-600 transition-colors">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Logo / name link (header)</p>
+            <a href="#" className="text-gray-900 font-medium hover:text-gray-600 transition-colors">
               Flo Lenormand
             </a>
-            <Label>text-sand-900 · font-medium → hover:text-sand-600 · transition-colors</Label>
+            <Label>text-gray-900 · font-medium → hover:text-gray-600 · transition-colors</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Footer link</p>
-            <div className="flex gap-6 text-sm text-sand-400">
-              <a href="#" className="hover:text-sand-600 transition-colors">Substack</a>
-              <a href="#" className="hover:text-sand-600 transition-colors">Threads</a>
-              <a href="#" className="hover:text-sand-600 transition-colors">LinkedIn</a>
-              <a href="#" className="hover:text-sand-600 transition-colors">Email</a>
+            <p className="text-sm text-gray-400 font-mono mb-3">— Footer link</p>
+            <div className="flex gap-6 text-sm text-gray-400">
+              <a href="#" className="hover:text-gray-600 transition-colors">Substack</a>
+              <a href="#" className="hover:text-gray-600 transition-colors">Threads</a>
+              <a href="#" className="hover:text-gray-600 transition-colors">LinkedIn</a>
+              <a href="#" className="hover:text-gray-600 transition-colors">Email</a>
             </div>
-            <Label>text-sm · text-sand-400 → hover:text-sand-600 · transition-colors</Label>
+            <Label>text-sm · text-gray-400 → hover:text-gray-600 · transition-colors</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Inline body link (About page)</p>
-            <p className="text-sand-800 leading-relaxed">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Inline body link (About page)</p>
+            <p className="text-gray-800 leading-relaxed">
               If you want to talk about any of this, I&apos;m{" "}
-              <a href="#" className="underline decoration-sand-300 underline-offset-2 hover:decoration-sand-500 transition-colors">
+              <a href="#" className="underline decoration-gray-200 underline-offset-2 hover:decoration-gray-500 transition-colors">
                 @flo_lenormand on Threads
               </a>{" "}
               or you can{" "}
-              <a href="#" className="underline decoration-sand-300 underline-offset-2 hover:decoration-sand-500 transition-colors">
+              <a href="#" className="underline decoration-gray-200 underline-offset-2 hover:decoration-gray-500 transition-colors">
                 email me
               </a>
               .
             </p>
-            <Label>underline · decoration-sand-300 · underline-offset-2 → hover:decoration-sand-500</Label>
+            <Label>underline · decoration-gray-200 · underline-offset-2 → hover:decoration-gray-500</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Prose link (inside articles)</p>
-            <p className="text-sand-800 leading-relaxed">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Prose link (inside articles)</p>
+            <p className="text-gray-800 leading-relaxed">
               Read more about{" "}
               <a href="#" style={{
-                color: 'var(--color-sand-700)',
+                color: 'var(--color-gray-600)',
                 textDecoration: 'underline',
-                textDecorationColor: 'var(--color-sand-300)',
+                textDecorationColor: 'var(--color-gray-200)',
                 textUnderlineOffset: '3px',
                 transition: 'text-decoration-color 0.2s',
               }}>
@@ -380,26 +331,26 @@ export default function DesignSystem() {
               </a>{" "}
               in the full article.
             </p>
-            <Label>color: sand-700 · decoration: sand-300 → sand-700 · underline-offset: 3px</Label>
+            <Label>color: gray-600 · decoration: gray-200 → gray-600 · underline-offset: 3px</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Back navigation link</p>
-            <a href="#" className="text-sm text-sand-400 hover:text-sand-600 transition-colors inline-block">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Back navigation link</p>
+            <a href="#" className="text-sm text-gray-400 hover:text-gray-600 transition-colors inline-block">
               ← Back
             </a>
-            <Label>text-sm · text-sand-400 → hover:text-sand-600</Label>
+            <Label>text-sm · text-gray-400 → hover:text-gray-600</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— External article link (home listing)</p>
+            <p className="text-sm text-gray-400 font-mono mb-3">— External article link (home listing)</p>
             <a href="#" className="block group">
-              <h2 className="text-base text-sand-900 group-hover:text-sand-600 transition-colors leading-snug">
+              <h2 className="text-base text-gray-900 group-hover:text-gray-600 transition-colors leading-snug">
                 The thing about designing for AI
-                <span className="text-sand-400 text-sm ml-1">↗</span>
+                <span className="text-gray-400 text-sm ml-1">↗</span>
               </h2>
             </a>
-            <Label>group-hover:text-sand-600 · external glyph: text-sand-400 text-sm</Label>
+            <Label>group-hover:text-gray-600 · external glyph: text-gray-400 text-sm</Label>
           </div>
         </div>
       </Section>
@@ -409,7 +360,7 @@ export default function DesignSystem() {
         <div className="prose">
           <h2>This is a second-level heading</h2>
           <p>
-            Body text sits at sand-800 with a line-height of 1.8 — generous enough
+            Body text sits at gray-800 with a line-height of 1.8 — generous enough
             for long-form reading without feeling airy. The measure is constrained
             to max-w-2xl by the outer layout, keeping lines around 65–70 characters.
           </p>
@@ -417,8 +368,8 @@ export default function DesignSystem() {
           <h3>Third-level heading</h3>
           <p>
             A second paragraph. Links inside prose look like{" "}
-            <a href="#">this link here</a> — underlined with sand-300 decoration
-            that darkens to sand-700 on hover.
+            <a href="#">this link here</a> — underlined with gray-200 decoration
+            that darkens to gray-600 on hover.
           </p>
 
           <blockquote>
@@ -441,14 +392,14 @@ export default function DesignSystem() {
           </ol>
 
           <p>
-            Inline <strong>strong text</strong> uses font-weight 600 at sand-900,
-            making it pop against the sand-800 body color.
+            Inline <strong>strong text</strong> uses font-weight 600 at gray-900,
+            making it pop against the gray-800 body color.
           </p>
 
           <hr />
 
           <p>
-            After a horizontal rule. The rule is 1px solid sand-200 — a whisper,
+            After a horizontal rule. The rule is 1px solid gray-200 — a whisper,
             not a wall.
           </p>
         </div>
@@ -480,18 +431,18 @@ export default function DesignSystem() {
             <article key={item.title} className="group">
               <a href="#" className="block">
                 <div className="flex items-baseline justify-between gap-4">
-                  <h2 className="text-base text-sand-900 group-hover:text-sand-600 transition-colors leading-snug">
+                  <h2 className="text-base text-gray-900 group-hover:text-gray-600 transition-colors leading-snug">
                     {item.title}
                     {item.external && (
-                      <span className="text-sand-400 text-sm ml-1">↗</span>
+                      <span className="text-gray-400 text-sm ml-1">↗</span>
                     )}
                   </h2>
-                  <time className="text-sm text-sand-400 whitespace-nowrap shrink-0">
+                  <time className="text-sm text-gray-400 whitespace-nowrap shrink-0">
                     {item.date}
                   </time>
                 </div>
                 {item.description && (
-                  <p className="text-sm text-sand-500 mt-1 leading-relaxed">
+                  <p className="text-sm text-gray-500 mt-1 leading-relaxed">
                     {item.description}
                   </p>
                 )}
@@ -499,54 +450,54 @@ export default function DesignSystem() {
             </article>
           ))}
         </div>
-        <Label>group · group-hover:text-sand-600 · date: text-sm text-sand-400 · desc: text-sm text-sand-500 mt-1</Label>
+        <Label>group · group-hover:text-gray-600 · date: text-sm text-gray-400 · desc: text-sm text-gray-500 mt-1</Label>
       </Section>
 
       {/* ─── Article Header ──────────────────────────────────── */}
       <Section title="Article Header" note="Writing page — title + date">
         <div className="pt-4">
-          <span className="text-sm text-sand-400 hover:text-sand-600 transition-colors inline-block mb-8 cursor-default">
+          <span className="text-sm text-gray-400 hover:text-gray-600 transition-colors inline-block mb-8 cursor-default">
             ← Back
           </span>
           <header className="mb-10">
-            <h1 className="text-2xl font-semibold text-sand-900 leading-tight mb-3">
+            <h1 className="text-2xl font-semibold text-gray-900 leading-tight mb-3">
               Why I stopped using design systems
             </h1>
-            <time className="text-sm text-sand-400">March 15, 2025</time>
+            <time className="text-sm text-gray-400">March 15, 2025</time>
           </header>
         </div>
-        <Label>h1: text-2xl font-semibold leading-tight mb-3 · time: text-sm text-sand-400</Label>
+        <Label>h1: text-2xl font-semibold leading-tight mb-3 · time: text-sm text-gray-400</Label>
       </Section>
 
       {/* ─── Layout Chrome ───────────────────────────────────── */}
       <Section title="Layout Chrome" note="Header and footer — exact markup">
-        <p className="text-sm text-sand-400 font-mono mb-4">— Header</p>
-        <div className="border border-sand-200 rounded overflow-hidden">
-          <div className="w-full px-6 pt-12 pb-6 bg-sand-50">
+        <p className="text-sm text-gray-400 font-mono mb-4">— Header</p>
+        <div className="border border-gray-200 rounded overflow-hidden">
+          <div className="w-full px-6 pt-12 pb-6 bg-gray-50">
             <nav className="flex items-baseline justify-between max-w-2xl">
-              <a href="#" className="text-sand-900 font-medium hover:text-sand-600 transition-colors">
+              <a href="#" className="text-gray-900 font-medium hover:text-gray-600 transition-colors">
                 Flo Lenormand
               </a>
-              <div className="flex gap-6 text-sm text-sand-500">
-                <a href="#" className="hover:text-sand-800 transition-colors">Writing</a>
-                <a href="#" className="hover:text-sand-800 transition-colors">About</a>
+              <div className="flex gap-6 text-sm text-gray-500">
+                <a href="#" className="hover:text-gray-800 transition-colors">Writing</a>
+                <a href="#" className="hover:text-gray-800 transition-colors">About</a>
               </div>
             </nav>
           </div>
         </div>
-        <Label>pt-12 pb-6 · justify-between · items-baseline · logo: font-medium sand-900 · nav: text-sm sand-500</Label>
+        <Label>pt-12 pb-6 · justify-between · items-baseline · logo: font-medium gray-900 · nav: text-sm gray-500</Label>
 
-        <p className="text-sm text-sand-400 font-mono mt-8 mb-4">— Footer</p>
-        <div className="border border-sand-200 rounded overflow-hidden">
-          <div className="px-6 py-8 border-t border-sand-200 bg-sand-50">
-            <div className="flex gap-6 text-sm text-sand-400">
+        <p className="text-sm text-gray-400 font-mono mt-8 mb-4">— Footer</p>
+        <div className="border border-gray-200 rounded overflow-hidden">
+          <div className="px-6 py-8 border-t border-gray-200 bg-gray-50">
+            <div className="flex gap-6 text-sm text-gray-400">
               {["Substack", "Threads", "LinkedIn", "Email"].map((l) => (
-                <a key={l} href="#" className="hover:text-sand-600 transition-colors">{l}</a>
+                <a key={l} href="#" className="hover:text-gray-600 transition-colors">{l}</a>
               ))}
             </div>
           </div>
         </div>
-        <Label>py-8 · border-t border-sand-200 · text-sm text-sand-400 → hover:text-sand-600</Label>
+        <Label>py-8 · border-t border-gray-200 · text-sm text-gray-400 → hover:text-gray-600</Label>
       </Section>
 
       {/* ─── Spacing ─────────────────────────────────────────── */}
@@ -563,11 +514,11 @@ export default function DesignSystem() {
         ].map((s) => (
           <div key={s.label} className="flex items-center gap-4 mb-3">
             <div
-              className="bg-sand-200 shrink-0"
+              className="bg-gray-200 shrink-0"
               style={{ width: s.px ? `${Math.min(s.px * 2, 160)}px` : "80px", height: "16px" }}
             />
-            <span className="text-xs font-mono text-sand-500 w-32 shrink-0">{s.label}{s.px ? ` (${s.px}px)` : ""}</span>
-            <span className="text-xs text-sand-400">{s.note}</span>
+            <span className="text-xs font-mono text-gray-500 w-32 shrink-0">{s.label}{s.px ? ` (${s.px}px)` : ""}</span>
+            <span className="text-xs text-gray-400">{s.note}</span>
           </div>
         ))}
       </Section>
@@ -576,17 +527,17 @@ export default function DesignSystem() {
       <Section title="Details" note="Micro-decisions">
         <div className="space-y-6">
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Text selection</p>
-            <p className="text-sand-800 leading-relaxed">
-              Try selecting this sentence — the highlight is sand-200,
+            <p className="text-sm text-gray-400 font-mono mb-3">— Text selection</p>
+            <p className="text-gray-800 leading-relaxed">
+              Try selecting this sentence — the highlight is gray-200,
               keeping the warm palette consistent even in browser-native UI.
             </p>
-            <Label>::selection background: sand-200 (#e8e0d4)</Label>
+            <Label>::selection background: gray-200 (#e8e0d4)</Label>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Transition duration</p>
-            <p className="text-xs text-sand-500">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Transition duration</p>
+            <p className="text-xs text-gray-500">
               All interactive elements use Tailwind&apos;s default{" "}
               <span className="font-mono">transition-colors</span> — 150ms ease.
               Prose link decoration uses an explicit{" "}
@@ -596,24 +547,24 @@ export default function DesignSystem() {
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Antialiasing</p>
-            <p className="text-xs text-sand-500">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Antialiasing</p>
+            <p className="text-xs text-gray-500">
               <span className="font-mono">-webkit-font-smoothing: antialiased</span> is
               set on body — renders Inter at subpixel clarity on Mac/retina.
             </p>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Scroll behavior</p>
-            <p className="text-xs text-sand-500">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Scroll behavior</p>
+            <p className="text-xs text-gray-500">
               <span className="font-mono">scroll-behavior: smooth</span> on html.
               Affects anchor navigation.
             </p>
           </div>
 
           <div>
-            <p className="text-sm text-sand-400 font-mono mb-3">— Max width / container</p>
-            <p className="text-xs text-sand-500">
+            <p className="text-sm text-gray-400 font-mono mb-3">— Max width / container</p>
+            <p className="text-xs text-gray-500">
               Header, main, and footer are all capped at{" "}
               <span className="font-mono">max-w-2xl (672px)</span>, centered with{" "}
               <span className="font-mono">mx-auto</span>. Side padding:{" "}

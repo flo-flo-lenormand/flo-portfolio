@@ -16,7 +16,7 @@ export default function Home() {
     <div className="pt-8">
       {/* Intro */}
       <section className="mb-16">
-        <p className="text-lg text-sand-700 leading-relaxed max-w-xl">
+        <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
           Product Designer at Meta, designing AI agents.
           <br />
           I write about design, AI, and the things I get wrong.
@@ -44,20 +44,20 @@ export default function Home() {
                   className="block"
                 >
                   <div className="flex items-baseline justify-between gap-4">
-                    <h2 className="text-base text-sand-900 group-hover:text-sand-600 transition-colors leading-snug">
+                    <h2 className="text-base text-gray-900 group-hover:text-gray-600 transition-colors leading-snug">
                       {article.title}
                       {isExternal && (
-                        <span className="text-sand-400 text-sm ml-1">
+                        <span className="text-gray-400 text-sm ml-1">
                           &#8599;
                         </span>
                       )}
                     </h2>
-                    <time className="text-sm text-sand-400 whitespace-nowrap shrink-0">
+                    <time className="text-sm text-gray-400 whitespace-nowrap shrink-0">
                       {formatDate(article.date)}
                     </time>
                   </div>
                   {article.description && (
-                    <p className="text-sm text-sand-500 mt-1 leading-relaxed">
+                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">
                       {article.description}
                     </p>
                   )}

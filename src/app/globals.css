@@ -1,17 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Colors ──────────────────────────────────────────────── */
-  --color-sand-50: #faf8f5;
-  --color-sand-100: #f3efe8;
-  --color-sand-200: #e8e0d4;
-  --color-sand-300: #d4c8b4;
-  --color-sand-400: #b8a68a;
-  --color-sand-500: #9a8568;
-  --color-sand-600: #7a6a52;
-  --color-sand-700: #5c4f3d;
-  --color-sand-800: #3d342a;
-  --color-sand-900: #1f1a14;
+  /* ── Colors ─────────────────────────────────────────────────
+     8-step zinc gray — each step has one semantic role:
+     50  → page background
+     100 → subtle surface (hover bg, code bg)
+     200 → borders, dividers, ::selection, underline decorations
+     400 → muted / metadata (dates, placeholders)
+     500 → secondary text (nav, footer links)
+     600 → hover on secondary, intro text, blockquote
+     800 → body / prose text
+     900 → headings, primary text
+  ────────────────────────────────────────────────────────── */
+  --color-gray-50:  #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
 
   /* ── Typography ──────────────────────────────────────────── */
   /* Inter — UI chrome, headings */
@@ -35,8 +43,8 @@ html {
 }
 
 body {
-  background-color: var(--color-sand-50);
-  color: var(--color-sand-900);
+  background-color: var(--color-gray-50);
+  color: var(--color-gray-900);
   font-family: var(--font-body);
   font-feature-settings: "kern" 1, "liga" 1;
   -webkit-font-smoothing: antialiased;
@@ -54,7 +62,7 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
-  color: var(--color-sand-900);
+  color: var(--color-gray-900);
 }
 
 .prose h3 {
@@ -63,26 +71,26 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
   margin-top: 2rem;
   margin-bottom: 0.75rem;
-  color: var(--color-sand-900);
+  color: var(--color-gray-900);
 }
 
 .prose p {
   font-size: 1.125rem; /* 18px */
   margin-bottom: 1.5rem;
   line-height: 1.8;
-  color: var(--color-sand-800);
+  color: var(--color-gray-800);
 }
 
 .prose a {
-  color: var(--color-sand-700);
+  color: var(--color-gray-600);
   text-decoration: underline;
-  text-decoration-color: var(--color-sand-300);
+  text-decoration-color: var(--color-gray-200);
   text-underline-offset: 3px;
   transition: text-decoration-color 0.2s;
 }
 
 .prose a:hover {
-  text-decoration-color: var(--color-sand-700);
+  text-decoration-color: var(--color-gray-600);
 }
 
 .prose ul, .prose ol {
@@ -94,7 +102,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1.125rem; /* 18px */
   margin-bottom: 0.5rem;
   line-height: 1.75;
-  color: var(--color-sand-800);
+  color: var(--color-gray-800);
 }
 
 .prose ul li {
@@ -106,24 +114,24 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .prose blockquote {
-  border-left: 2px solid var(--color-sand-300);
+  border-left: 2px solid var(--color-gray-200);
   padding-left: 1rem;
   margin: 2rem 0;
-  color: var(--color-sand-600);
+  color: var(--color-gray-600);
   font-style: italic;
 }
 
 .prose hr {
   border: none;
-  border-top: 1px solid var(--color-sand-200);
+  border-top: 1px solid var(--color-gray-200);
   margin: 2.5rem 0;
 }
 
 .prose strong {
   font-weight: 600;
-  color: var(--color-sand-900);
+  color: var(--color-gray-900);
 }
 
 ::selection {
-  background-color: var(--color-sand-200);
+  background-color: var(--color-gray-200);
 }

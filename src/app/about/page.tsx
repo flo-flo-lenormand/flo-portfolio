@@ -7,9 +7,9 @@ export const metadata: Metadata = {
 export default function About() {
   return (
     <div className="pt-8">
-      <h1 className="text-[28px] font-semibold text-sand-900 leading-tight tracking-[-0.02em] mb-8">About</h1>
+      <h1 className="text-[28px] font-semibold text-gray-900 leading-tight tracking-[-0.02em] mb-8">About</h1>
 
-      <div className="space-y-5 text-sand-800 leading-relaxed">
+      <div className="space-y-5 text-gray-800 leading-relaxed">
         <p>
           I&apos;m Flo, a product designer at Meta. I currently work at Meta
           Superintelligence Labs (MSL), designing AI agent experiences. Before
@@ -44,18 +44,18 @@ export default function About() {
           online.
         </p>
 
-        <p className="text-sand-500 text-sm mt-8">
+        <p className="text-gray-500 text-sm mt-8">
           If you want to talk about any of this, I&apos;m{" "}
           <a
             href="https://www.threads.net/@flo_lenormand"
-            className="underline decoration-sand-300 underline-offset-2 hover:decoration-sand-500 transition-colors"
+            className="underline decoration-gray-200 underline-offset-2 hover:decoration-gray-500 transition-colors"
           >
             @flo_lenormand on Threads
           </a>{" "}
           or you can{" "}
           <a
             href="mailto:florent.lenormand@icloud.com"
-            className="underline decoration-sand-300 underline-offset-2 hover:decoration-sand-500 transition-colors"
+            className="underline decoration-gray-200 underline-offset-2 hover:decoration-gray-500 transition-colors"
           >
             email me
           </a>

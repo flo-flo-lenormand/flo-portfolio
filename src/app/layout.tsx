@@ -39,17 +39,17 @@ export default function RootLayout({
           <nav className="flex items-baseline justify-between">
             <Link
               href="/"
-              className="text-sand-900 font-medium hover:text-sand-600 transition-colors"
+              className="text-gray-900 font-medium hover:text-gray-600 transition-colors"
             >
               Flo Lenormand
             </Link>
-            <div className="flex gap-6 text-sm text-sand-500">
-              <Link href="/" className="hover:text-sand-800 transition-colors">
+            <div className="flex gap-6 text-sm text-gray-500">
+              <Link href="/" className="hover:text-gray-800 transition-colors">
                 Writing
               </Link>
               <Link
                 href="/about"
-                className="hover:text-sand-800 transition-colors"
+                className="hover:text-gray-800 transition-colors"
               >
                 About
               </Link>
@@ -59,13 +59,13 @@ export default function RootLayout({
         <main className="flex-1 w-full max-w-2xl mx-auto px-6 pb-20">
           {children}
         </main>
-        <footer className="w-full max-w-2xl mx-auto px-6 py-8 border-t border-sand-200">
-          <div className="flex gap-6 text-sm text-sand-400">
+        <footer className="w-full max-w-2xl mx-auto px-6 py-8 border-t border-gray-200">
+          <div className="flex gap-6 text-sm text-gray-400">
             <a
               href="https://substack.com/@flolenormand"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-sand-600 transition-colors"
+              className="hover:text-gray-600 transition-colors"
             >
               Substack
             </a>
@@ -73,7 +73,7 @@ export default function RootLayout({
               href="https://www.threads.net/@flo_lenormand"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-sand-600 transition-colors"
+              className="hover:text-gray-600 transition-colors"
             >
               Threads
             </a>
@@ -81,13 +81,13 @@ export default function RootLayout({
               href="https://www.linkedin.com/in/florentlenormand"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-sand-600 transition-colors"
+              className="hover:text-gray-600 transition-colors"
             >
               LinkedIn
             </a>
             <a
               href="mailto:florent.lenormand@icloud.com"
-              className="hover:text-sand-600 transition-colors"
+              className="hover:text-gray-600 transition-colors"
             >
               Email
             </a>
