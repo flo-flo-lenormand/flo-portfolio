@@ -1,56 +1,59 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "motion/react";
 
 const WORDS = [
-  "Thinking...",
-  "Computing...",
-  "Surfing...",
-  "Hallucinating...",
-  "Floing...",
-  "Napping...",
-  "Procrastinating...",
-  "Forgetting...",
-  "Remembering...",
+  "thinking",
+  "computing",
+  "surfing",
+  "hallucinating",
+  "floing",
+  "napping",
+  "procrastinating",
+  "forgetting",
+  "remembering",
 ];
 
 export default function SmartWord() {
   const [active, setActive] = useState(false);
-  const [index, setIndex] = useState(0);
+  const [wordIndex, setWordIndex] = useState(0);
+  const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
     if (!active) {
-      setIndex(0);
+      setDisplayed("");
+      setWordIndex(0);
       return;
     }
-    const interval = setInterval(() => {
-      setIndex((i) => (i + 1) % WORDS.length);
-    }, 800);
-    return () => clearInterval(interval);
-  }, [active]);
 
-  const word = active ? WORDS[index] : "smart";
+    const word = WORDS[wordIndex];
+    const full = word + "...";
+
+    if (displayed.length < full.length) {
+      const isTypingDots = displayed.length >= word.length;
+      const delay = isTypingDots ? 220 : 45;
+      const timer = setTimeout(() => {
+        setDisplayed(full.slice(0, displayed.length + 1));
+      }, delay);
+      return () => clearTimeout(timer);
+    } else {
+      // Full word shown — pause then move to next
+      const timer = setTimeout(() => {
+        setDisplayed("");
+        setWordIndex((i) => (i + 1) % WORDS.length);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [active, displayed, wordIndex]);
 
   return (
     <span
-      className="inline-block relative cursor-default"
+      className="inline-block cursor-default"
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
       onClick={() => setActive((v) => !v)}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={word}
-          initial={{ opacity: 0, y: 5, filter: "blur(3px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, y: -5, filter: "blur(3px)" }}
-          transition={{ duration: 0.15, ease: [0.25, 0, 0, 1] }}
-          className="inline-block"
-        >
-          {word}
-        </motion.span>
-      </AnimatePresence>
+      {active ? displayed : "smart"}
     </span>
   );
 }
