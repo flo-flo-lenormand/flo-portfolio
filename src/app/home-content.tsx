@@ -97,7 +97,7 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
           transition={lineTransition(1.3)}
         >
           <p>
-            Product designer focused on AI agents. Working hard to automate my design workflow so I can go surfing.
+            Flo, product designer focused on AI agents. Working hard to automate my design workflow so I can go surfing.
           </p>
         </motion.div>
       </section>
