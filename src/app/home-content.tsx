@@ -79,10 +79,10 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
       <section className="mb-6">
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
           <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.15)}>
-            I made message bubbles <SafeWord />
+            I made message bubbles <SafeWord />,
           </motion.span>
           <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.55)}>
-            then <ExpressiveWord />
+            then <ExpressiveWord />,
           </motion.span>
           <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.95)}>
             now <SmartWord />
