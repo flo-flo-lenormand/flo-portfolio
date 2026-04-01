@@ -47,15 +47,24 @@ export default function SmartWord() {
     }
   }, [active, displayed, wordIndex]);
 
+  // Spacer holds the hover area stable — never smaller than "smart",
+  // grows with the word as it types so the mouse never escapes
+  const spacer = active && displayed.length > "smart".length ? displayed : "smart";
+  const text = active ? displayed || "smart" : "smart";
+
   return (
     <span
-      className="inline-block cursor-default"
-      style={{ color: "inherit" }}
+      className="relative inline-block cursor-default"
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
       onClick={() => setActive((v) => !v)}
     >
-      {active ? displayed || "smart" : "smart"}
+      <span className="invisible select-none pointer-events-none" aria-hidden="true">
+        {spacer}
+      </span>
+      <span className="absolute left-0 top-0 whitespace-nowrap" style={{ color: "inherit" }}>
+        {text}
+      </span>
     </span>
   );
 }
