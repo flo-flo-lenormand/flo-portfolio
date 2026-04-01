@@ -9,7 +9,7 @@ export default function SafeWord() {
   return (
     <motion.span
       className="inline-block cursor-default"
-      animate={{ filter: active ? "blur(3px)" : "blur(0px)" }}
+      animate={{ filter: active ? "blur(5px)" : "blur(0px)" }}
       transition={
         active
           ? { duration: 0.9, ease: [0.4, 0, 1, 1] }

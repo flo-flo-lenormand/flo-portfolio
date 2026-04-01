@@ -12,6 +12,18 @@ const COLORS = [
   "#8EF9FD",
   "#8978F7",
   "#E9405A",
+  "#EF8EEE",
+  "#FF6B35",
+  "#C0F541",
+  "#FF3DFF",
+  "#00FFAB",
+  "#FFB347",
+  "#3DFFEC",
+  "#FF69B4",
+  "#B8FF3D",
+  "#7419F5",
+  "#FFFF6E",
+  "#E9405A",
 ];
 
 export default function ExpressiveWord() {
