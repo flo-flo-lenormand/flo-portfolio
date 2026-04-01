@@ -84,7 +84,7 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
           <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.55)}>
             then <ExpressiveWord />.
           </motion.span>
-          <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.95)}>
+          <motion.span className="block mt-6" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.95)}>
             Now I&apos;m making them <SmartWord /> at Meta Superintelligence Labs.
           </motion.span>
         </h1>
