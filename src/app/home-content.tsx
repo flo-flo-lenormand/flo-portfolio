@@ -85,7 +85,7 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
             then <ExpressiveWord />.
           </motion.span>
           <motion.span className="block mt-6" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.95)}>
-            Now I&apos;m making them <SmartWord /> at Meta Superintelligence Labs.
+            Now I&apos;m making them <SmartWord /><br />at Meta Superintelligence Labs.
           </motion.span>
         </h1>
 
@@ -97,7 +97,7 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
           transition={lineTransition(1.3)}
         >
           <p>
-            Product designer at Meta, working on AI agents at Meta Superintelligence Labs (MSL). Working hard to automate my design workflow so I can go surfing.
+            Product designer focused on AI agents. Working hard to automate my design workflow so I can go surfing.
           </p>
         </motion.div>
       </section>
