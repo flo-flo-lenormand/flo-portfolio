@@ -102,27 +102,6 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
         </motion.div>
       </section>
 
-      {/* Layout variant B */}
-      <section className="mb-16 pt-12 border-t border-gray-200">
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-8">Variant B</p>
-        <div className="leading-tight">
-          <span className="block text-base text-gray-700">
-            I spent my career making Messenger&apos;s message bubbles{" "}
-            <span className="text-2xl md:text-3xl font-extrabold text-gray-900"><SafeWord /></span>
-          </span>
-          <span className="block text-base text-gray-700">
-            then <span className="text-2xl md:text-3xl font-extrabold text-gray-900"><ExpressiveWord /></span>
-          </span>
-          <span className="block text-base text-gray-700 mt-6">
-            Now I&apos;m making them <span className="text-2xl md:text-3xl font-extrabold text-gray-900"><SmartWord /></span>
-          </span>
-          <span className="block text-base text-gray-700">at Meta Superintelligence Labs</span>
-        </div>
-        <p className="text-base text-gray-700 mt-6">
-          Flo, product designer focused on AI agents. Working hard to automate my design workflow so I can go surfing.
-        </p>
-      </section>
-
       {/* Toggles */}
       <motion.div
         initial="hidden"
