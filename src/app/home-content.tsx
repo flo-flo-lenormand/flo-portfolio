@@ -43,9 +43,9 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
       {/* Intro */}
       <motion.section className="mb-16" variants={item} transition={itemTransition}>
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
-          <span className="block">I made message bubbles safe,</span>
-          <span className="block">then expressive,</span>
-          <span className="block">now smart.</span>
+          <span className="block">I made message bubbles safe</span>
+          <span className="block">then expressive</span>
+          <span className="block">now smart</span>
         </h1>
         <div className="prose">
           <p>
