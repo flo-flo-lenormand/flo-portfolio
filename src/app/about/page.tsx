@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import ChatBubble from "@/components/ChatBubble";
 import { messages } from "@/lib/chat-data";
 
 export const metadata: Metadata = {
@@ -9,32 +8,36 @@ export const metadata: Metadata = {
 export default function About() {
   return (
     <div className="pt-8">
-      <div className="space-y-1">
+      <div className="space-y-5">
         {messages.map((message, index) => {
-          const nextMessage = messages[index + 1];
-          const isLastInGroup =
-            !nextMessage || nextMessage.sender !== message.sender;
           const prevMessage = messages[index - 1];
-          const isFirstInGroup =
-            !prevMessage || prevMessage.sender !== message.sender;
+          const isNewGroup = !prevMessage || prevMessage.sender !== message.sender;
+          const isFlo = message.sender === "flo";
 
           return (
             <div
               key={message.id}
-              className={isFirstInGroup && index !== 0 ? "pt-3" : ""}
+              className={`flex gap-6 items-baseline${isNewGroup && index !== 0 ? " mt-8" : ""}`}
             >
-              <ChatBubble
-                text={message.text}
-                sender={message.sender}
-                isLastInGroup={isLastInGroup}
-                reaction={message.reaction}
-              />
+              <span className="text-xs text-gray-400 uppercase tracking-widest w-8 shrink-0 leading-relaxed pt-px">
+                {isNewGroup ? (isFlo ? "Flo" : "Mum") : ""}
+              </span>
+              <div>
+                <p className="text-base md:text-lg text-gray-800 leading-relaxed">
+                  {message.text}
+                </p>
+                {message.reaction && (
+                  <span className="text-sm text-gray-400 mt-1 block">
+                    {message.reaction.emoji}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-12 pt-8 border-t border-gray-200">
+      <div className="mt-16 pt-8 border-t border-gray-200">
         <p className="text-sm text-gray-500 mb-1">
           if this resonated, i&apos;d love to hear from you.
         </p>
