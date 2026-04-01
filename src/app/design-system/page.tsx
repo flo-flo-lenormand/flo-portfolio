@@ -63,7 +63,7 @@ export default function DesignSystem() {
           <span>Body / prose → Geist · regular · 18px</span>
         </div>
 
-        <h2 className="text-[36px] font-extrabold text-gray-900 leading-tight tracking-tight mb-3">
+        <h2 className="text-[32px] md:text-[48px] font-extrabold text-gray-900 leading-tight tracking-tight mb-3">
           I built a dashboard with AI agents, then deleted everything
         </h2>
         <time className="text-sm text-gray-400 block mb-8">March 16, 2026</time>
@@ -88,7 +88,7 @@ export default function DesignSystem() {
 
         <div className="mt-8 space-y-1">
           <Label>h1/h2/h3 — Geist · font-sans = font-body · one font family</Label>
-          <Label>title — text-[36px] · font-extrabold · leading-tight · tracking-tight</Label>
+          <Label>title — text-[32px] mobile · text-[48px] md+ · font-extrabold · leading-tight · tracking-tight</Label>
           <Label>prose body — text-lg (18px) · leading-[1.8]</Label>
         </div>
       </Section>
