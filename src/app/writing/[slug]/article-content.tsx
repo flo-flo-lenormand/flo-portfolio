@@ -41,9 +41,12 @@ export default function ArticleContent({ title, date, content }: Props) {
       >
         <Link
           href="/"
-          className="text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8 inline-block"
+          className="group text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8 inline-flex items-center gap-1.5 active:scale-[0.96] transition-transform duration-150 ease-out"
         >
-          ← Back
+          <span className="inline-block transition-transform duration-200 ease-out group-hover:-translate-x-1">
+            ←
+          </span>
+          <span>Back</span>
         </Link>
       </motion.div>
 

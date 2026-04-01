@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
+import PageTransition from "@/components/page-transition";
 import "./globals.css";
 
 const geist = Geist({
@@ -33,17 +34,17 @@ export default function RootLayout({
           <nav className="flex items-baseline justify-between">
             <Link
               href="/"
-              className="text-gray-900 font-medium hover:text-gray-600 transition-colors"
+              className="text-gray-900 font-medium hover:text-gray-600 transition-colors active:scale-[0.96] transition-transform duration-150 ease-out inline-block"
             >
               Flo Lenormand
             </Link>
             <div className="flex gap-6 text-sm text-gray-500">
-              <Link href="/" className="hover:text-gray-800 transition-colors">
+              <Link href="/" className="hover:text-gray-800 transition-colors active:scale-[0.96] transition-transform duration-150 ease-out inline-block">
                 Writing
               </Link>
               <Link
                 href="/about"
-                className="hover:text-gray-800 transition-colors"
+                className="hover:text-gray-800 transition-colors active:scale-[0.96] transition-transform duration-150 ease-out inline-block"
               >
                 About
               </Link>
@@ -51,7 +52,7 @@ export default function RootLayout({
           </nav>
         </header>
         <main className="flex-1 w-full max-w-2xl mx-auto px-6 pb-20">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
         <footer className="w-full max-w-2xl mx-auto px-6 py-8 border-t border-gray-200">
           <div className="flex gap-6 text-sm text-gray-400">
