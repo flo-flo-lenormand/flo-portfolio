@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Playfair_Display } from "next/font/google";
+import { Geist } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-playfair-var",
-});
 
 const geist = Geist({
   subsets: ["latin"],
@@ -33,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${playfair.variable} ${geist.variable} h-full`}>
+    <html lang="en" className={`${geist.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <header className="w-full max-w-2xl mx-auto px-6 pt-12 pb-6">
           <nav className="flex items-baseline justify-between">

@@ -57,13 +57,13 @@ export default function DesignSystem() {
       </div>
 
       {/* ─── Type Direction ─────────────────────────────────── */}
-      <Section title="Type Direction" note="✓ Locked — Playfair Display title · Geist body 18px">
+      <Section title="Type Direction" note="✓ Locked — Geist everything · weight creates hierarchy">
         <div className="flex gap-8 text-xs font-mono text-gray-400 mb-8">
-          <span>Headings → Playfair Display · font-sans</span>
-          <span>Body / prose → Geist · font-body</span>
+          <span>Headings → Geist · extrabold · 36px</span>
+          <span>Body / prose → Geist · regular · 18px</span>
         </div>
 
-        <h2 className="text-[28px] font-bold text-gray-900 leading-tight mb-3">
+        <h2 className="text-[36px] font-extrabold text-gray-900 leading-tight tracking-tight mb-3">
           I built a dashboard with AI agents, then deleted everything
         </h2>
         <time className="text-sm text-gray-400 block mb-8">March 16, 2026</time>
@@ -87,9 +87,8 @@ export default function DesignSystem() {
         </p>
 
         <div className="mt-8 space-y-1">
-          <Label>h1/h2/h3 — Playfair Display · font-sans · applied via CSS globally</Label>
-          <Label>body — Geist · font-body · set on &lt;body&gt; in globals.css</Label>
-          <Label>title — text-[28px] · font-bold · leading-tight</Label>
+          <Label>h1/h2/h3 — Geist · font-sans = font-body · one font family</Label>
+          <Label>title — text-[36px] · font-extrabold · leading-tight · tracking-tight</Label>
           <Label>prose body — text-lg (18px) · leading-[1.8]</Label>
         </div>
       </Section>
