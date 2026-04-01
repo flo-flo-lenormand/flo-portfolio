@@ -42,16 +42,14 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
     >
       {/* Intro */}
       <motion.section className="mb-16" variants={item} transition={itemTransition}>
-        <h1 className="text-[32px] md:text-[48px] font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
           <span className="block">I made message bubbles safe,</span>
           <span className="block">then expressive,</span>
           <span className="block">now smart.</span>
         </h1>
         <div className="prose">
           <p>
-            Product designer at Meta, working on AI agents at Meta Superintelligence Labs.
-            <br />
-            Working hard to automate my design workflow so I can go surfing.
+            Product designer at Meta, working on AI agents at Meta Superintelligence Labs. Working hard to automate my design workflow so I can go surfing.
           </p>
         </div>
       </motion.section>
