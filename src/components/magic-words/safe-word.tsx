@@ -9,8 +9,12 @@ export default function SafeWord() {
   return (
     <motion.span
       className="inline-block cursor-default"
-      animate={{ filter: active ? "blur(6px)" : "blur(0px)" }}
-      transition={{ type: "spring", duration: 0.4, bounce: 0 }}
+      animate={{ filter: active ? "blur(3px)" : "blur(0px)" }}
+      transition={
+        active
+          ? { duration: 0.9, ease: [0.4, 0, 1, 1] }
+          : { duration: 0.4, ease: [0, 0, 0.2, 1] }
+      }
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
       onClick={() => setActive((v) => !v)}
