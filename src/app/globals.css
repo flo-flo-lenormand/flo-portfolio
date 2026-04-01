@@ -14,7 +14,10 @@
   --color-sand-900: #1f1a14;
 
   /* ── Typography ──────────────────────────────────────────── */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Inter — UI chrome, headings */
+  --font-sans: var(--font-inter-var), ui-sans-serif, system-ui, sans-serif;
+  /* Geist — body, prose, reading text */
+  --font-body: var(--font-geist-var), ui-sans-serif, system-ui, sans-serif;
 
   /* ── Spacing ─────────────────────────────────────────────── */
   --spacing-page-top: 2rem;        /* pt-8  — all pages */
@@ -34,14 +37,21 @@ html {
 body {
   background-color: var(--color-sand-50);
   color: var(--color-sand-900);
+  font-family: var(--font-body);
   font-feature-settings: "kern" 1, "liga" 1;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Headings use Inter */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
 }
 
 /* Article prose */
 .prose h2 {
   font-size: 1.25rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
   color: var(--color-sand-900);
@@ -50,13 +60,15 @@ body {
 .prose h3 {
   font-size: 1.1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   margin-top: 2rem;
   margin-bottom: 0.75rem;
   color: var(--color-sand-900);
 }
 
 .prose p {
-  margin-bottom: 1.25rem;
+  font-size: 1.125rem; /* 18px */
+  margin-bottom: 1.5rem;
   line-height: 1.8;
   color: var(--color-sand-800);
 }
@@ -74,13 +86,14 @@ body {
 }
 
 .prose ul, .prose ol {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
   padding-left: 1.5rem;
 }
 
 .prose li {
+  font-size: 1.125rem; /* 18px */
   margin-bottom: 0.5rem;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--color-sand-800);
 }
 
@@ -95,7 +108,7 @@ body {
 .prose blockquote {
   border-left: 2px solid var(--color-sand-300);
   padding-left: 1rem;
-  margin: 1.5rem 0;
+  margin: 2rem 0;
   color: var(--color-sand-600);
   font-style: italic;
 }
@@ -103,7 +116,7 @@ body {
 .prose hr {
   border: none;
   border-top: 1px solid var(--color-sand-200);
-  margin: 2rem 0;
+  margin: 2.5rem 0;
 }
 
 .prose strong {

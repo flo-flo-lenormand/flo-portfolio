@@ -58,7 +58,7 @@ export default async function ArticlePage({
       </Link>
 
       <header className="mb-10">
-        <h1 className="text-2xl font-semibold text-sand-900 leading-tight mb-3">
+        <h1 className="text-[28px] font-semibold text-sand-900 leading-tight tracking-[-0.02em] mb-3">
           {article.title}
         </h1>
         <time className="text-sm text-sand-400">{date}</time>

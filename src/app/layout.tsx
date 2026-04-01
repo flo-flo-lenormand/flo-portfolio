@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Geist } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-inter-var",
+});
+
+const geist = Geist({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-geist-var",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.className} h-full`}>
+    <html lang="en" className={`${inter.variable} ${geist.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <header className="w-full max-w-2xl mx-auto px-6 pt-12 pb-6">
           <nav className="flex items-baseline justify-between">

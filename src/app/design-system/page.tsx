@@ -1,7 +1,4 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-
-const geist = Geist({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Design System – Flo Lenormand",
@@ -63,32 +60,39 @@ export default function DesignSystem() {
 
       {/* ─── Font Exploration ───────────────────────────────── */}
       <Section title="Type Direction" note="✓ Locked — Inter title 28px · Geist body 18px">
-        <p className="text-xs font-mono text-sand-500 mb-1">Inter title · Geist body</p>
-        <p className="text-xs text-sand-400 mb-6">Title: Inter 28px semibold · Body: Geist 18px · line-height 1.8</p>
+        <div className="flex gap-8 text-xs font-mono text-sand-400 mb-8">
+          <span>Headings → Inter · font-sans</span>
+          <span>Body / prose → Geist · font-body</span>
+        </div>
 
-        <h2 className="text-[28px] font-semibold text-sand-900 leading-tight mb-3">
+        <h2 className="text-[28px] font-semibold text-sand-900 leading-tight tracking-[-0.02em] mb-3">
           I built a dashboard with AI agents, then deleted everything
         </h2>
         <time className="text-sm text-sand-400 block mb-8">March 16, 2026</time>
 
-        <div className={geist.className}>
-          <p className="text-lg text-sand-800 leading-[1.8] mb-5">
-            I spent weeks building a personal productivity dashboard with Claude Code.
-            It had everything: a background agent scanning my Google Chat every five minutes,
-            a morning briefing system, a calendar integration, a creative assistant scraping
-            design inspiration, a content agent drafting Threads posts. It looked impressive.
-            Multiple agent pages, each with their own personality and avatar. Animated breathing
-            dots. Mood indicators.
-          </p>
-          <p className="text-lg text-sand-800 leading-[1.8] mb-5">
-            Then I started actually using it. The draft replies sat there unreviewed because
-            I&apos;d already replied in GChat directly. The calendar section told me things I
-            already knew from looking at my phone. The morning briefing was interesting but not
-            actionable. So I deleted it. All of it.
-          </p>
-          <p className="text-sm text-sand-500 leading-relaxed">
-            The paradox of building with AI is that you can build so fast that you outrun your actual needs.
-          </p>
+        <p className="text-lg text-sand-800 leading-[1.8] mb-5">
+          I spent weeks building a personal productivity dashboard with Claude Code.
+          It had everything: a background agent scanning my Google Chat every five minutes,
+          a morning briefing system, a calendar integration, a creative assistant scraping
+          design inspiration, a content agent drafting Threads posts. It looked impressive.
+          Multiple agent pages, each with their own personality and avatar. Animated breathing
+          dots. Mood indicators.
+        </p>
+        <p className="text-lg text-sand-800 leading-[1.8] mb-5">
+          Then I started actually using it. The draft replies sat there unreviewed because
+          I&apos;d already replied in GChat directly. The calendar section told me things I
+          already knew from looking at my phone. The morning briefing was interesting but not
+          actionable. So I deleted it. All of it.
+        </p>
+        <p className="text-sm text-sand-500 leading-relaxed">
+          The paradox of building with AI is that you can build so fast that you outrun your actual needs.
+        </p>
+
+        <div className="mt-8 space-y-1">
+          <Label>h1/h2/h3 — font-sans (Inter) · applied via CSS globally</Label>
+          <Label>body — font-body (Geist) · set on &lt;body&gt; in globals.css</Label>
+          <Label>title size — text-[28px] · tracking-[-0.02em] · leading-tight</Label>
+          <Label>prose body — text-lg (18px) · leading-[1.8]</Label>
         </div>
       </Section>
 
