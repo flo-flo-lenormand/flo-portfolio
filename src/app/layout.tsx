@@ -34,17 +34,6 @@ export default function RootLayout({
         <header className="w-full max-w-2xl mx-auto px-6 pt-12 pb-6">
           <nav className="flex items-center justify-between">
             <NavName />
-            <div className="flex gap-6 text-sm text-gray-500">
-              <Link href="/" className="hover:text-gray-800 transition-colors active:scale-[0.96] transition-transform duration-150 ease-out inline-block">
-                Writing
-              </Link>
-              <Link
-                href="/about"
-                className="hover:text-gray-800 transition-colors active:scale-[0.96] transition-transform duration-150 ease-out inline-block"
-              >
-                About
-              </Link>
-            </div>
           </nav>
         </header>
         <main className="flex-1 w-full max-w-2xl mx-auto px-6 pb-20">
