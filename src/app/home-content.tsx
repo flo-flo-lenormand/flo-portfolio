@@ -66,8 +66,9 @@ function Toggle({ label, open, onClick }: { label: string; open: boolean; onClic
 }
 
 export default function HomeContent({ articles }: { articles: Article[] }) {
-  const [writingOpen, setWritingOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
+  const [open, setOpen] = useState<"writing" | "about" | null>(null);
+  const writingOpen = open === "writing";
+  const aboutOpen = open === "about";
 
   return (
     <div className="pt-20">
@@ -113,8 +114,8 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
         transition={lineTransition(1.55)}
       >
         <div className="flex gap-6 mb-8">
-          <Toggle label="About" open={aboutOpen} onClick={() => setAboutOpen((v) => !v)} />
-          <Toggle label="Writing" open={writingOpen} onClick={() => setWritingOpen((v) => !v)} />
+          <Toggle label="About" open={aboutOpen} onClick={() => setOpen((v) => v === "about" ? null : "about")} />
+          <Toggle label="Writing" open={writingOpen} onClick={() => setOpen((v) => v === "writing" ? null : "writing")} />
         </div>
 
         {/* About panel */}
