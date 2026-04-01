@@ -9,9 +9,20 @@ function getFaviconLink(): HTMLLinkElement | null {
   return document.querySelector<HTMLLinkElement>('link[rel*="icon"]');
 }
 
-// Ease out cubic — fast start, soft landing
-function easeOutCubic(t: number) {
-  return 1 - Math.pow(1 - t, 3);
+// Spring physics — stiffness/damping produce natural acceleration
+// dt is in seconds; returns updated position and velocity
+function springStep(
+  pos: number,
+  vel: number,
+  target: number,
+  dt: number,
+  stiffness = 260,
+  damping = 28
+) {
+  const force = stiffness * (target - pos) - damping * vel;
+  const newVel = vel + force * dt;
+  const newPos = pos + newVel * dt;
+  return { pos: newPos, vel: newVel };
 }
 
 function drawCircularFrame(
@@ -36,7 +47,9 @@ export default function NavName() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const rafRef = useRef<number | null>(null);
-  const currentScale = useRef(0);
+  const springPos = useRef(0);
+  const springVel = useRef(0);
+  const targetRef = useRef(0);
 
   function getCanvas() {
     if (!canvasRef.current) {
@@ -61,31 +74,47 @@ export default function NavName() {
     });
   }
 
-  function animateTo(target: number, duration: number) {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+  function startSpring(target: number) {
+    targetRef.current = target;
+    if (rafRef.current) return; // already running
+
     const { canvas, ctx } = getCanvas();
     const img = imgRef.current!;
     const link = getFaviconLink();
     if (!link) return;
 
-    const startScale = currentScale.current;
-    const startTime = performance.now();
+    let lastTime: number | null = null;
 
     function frame(now: number) {
-      const t = Math.min((now - startTime) / duration, 1);
-      const eased = easeOutCubic(t);
-      currentScale.current = startScale + (target - startScale) * eased;
+      const dt = Math.min((now - (lastTime ?? now)) / 1000, 0.064); // cap at 64ms
+      lastTime = now;
 
-      drawCircularFrame(ctx, img, currentScale.current);
+      const { pos, vel } = springStep(
+        springPos.current,
+        springVel.current,
+        targetRef.current,
+        dt
+      );
+      springPos.current = pos;
+      springVel.current = vel;
+
+      const settled =
+        Math.abs(targetRef.current - pos) < 0.002 &&
+        Math.abs(vel) < 0.002;
+
+      const scale = Math.max(0, Math.min(1, pos));
+      drawCircularFrame(ctx, img, scale);
       link!.href = canvas.toDataURL("image/png");
 
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(frame);
-      } else {
-        currentScale.current = target;
-        if (target === 0 && originalHref.current) {
+      if (settled) {
+        rafRef.current = null;
+        springPos.current = targetRef.current;
+        springVel.current = 0;
+        if (targetRef.current === 0 && originalHref.current) {
           link!.href = originalHref.current;
         }
+      } else {
+        rafRef.current = requestAnimationFrame(frame);
       }
     }
 
@@ -97,12 +126,12 @@ export default function NavName() {
     if (!link) return;
     if (!originalHref.current) originalHref.current = link.href;
     await loadImage();
-    animateTo(1, 320);
+    startSpring(1);
   };
 
   const handleMouseLeave = () => {
     if (!imgRef.current) return;
-    animateTo(0, 220);
+    startSpring(0);
   };
 
   return (
