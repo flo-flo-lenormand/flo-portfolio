@@ -3,6 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import { animate } from "motion/react";
 
+const COLORS = [
+  "#E9405A",
+  "#EF8EEE",
+  "#7419F5",
+  "#91F89B",
+  "#FFFF6E",
+  "#8EF9FD",
+  "#8978F7",
+  "#E9405A",
+];
+
 export default function ExpressiveWord() {
   const [active, setActive] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
@@ -11,17 +22,15 @@ export default function ExpressiveWord() {
   useEffect(() => {
     if (!ref.current) return;
     if (active) {
-      ref.current.style.color = "#e53935";
-      controls.current = animate(
-        ref.current,
-        { filter: ["hue-rotate(0deg)", "hue-rotate(360deg)"] },
-        { duration: 1.8, repeat: Infinity, ease: "linear" }
-      );
+      controls.current = animate(ref.current, { color: COLORS }, {
+        duration: 0.5,
+        repeat: Infinity,
+        ease: "linear",
+      });
     } else {
       controls.current?.stop();
       controls.current = null;
       ref.current.style.color = "";
-      ref.current.style.filter = "";
     }
     return () => {
       controls.current?.stop();
