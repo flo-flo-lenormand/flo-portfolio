@@ -22,8 +22,8 @@
   --color-gray-900: #18181b;
 
   /* ── Typography ──────────────────────────────────────────── */
-  /* Inter — UI chrome, headings */
-  --font-sans: var(--font-inter-var), ui-sans-serif, system-ui, sans-serif;
+  /* Playfair Display — headings */
+  --font-sans: var(--font-playfair-var), ui-serif, Georgia, serif;
   /* Geist — body, prose, reading text */
   --font-body: var(--font-geist-var), ui-sans-serif, system-ui, sans-serif;
 

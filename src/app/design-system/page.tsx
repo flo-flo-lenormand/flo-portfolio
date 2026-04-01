@@ -1,13 +1,4 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Syne, DM_Serif_Display, Fraunces, Bricolage_Grotesque, Cormorant, Playfair_Display } from "next/font/google";
-
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], display: "swap" });
-const syne = Syne({ subsets: ["latin"], display: "swap" });
-const dmSerifDisplay = DM_Serif_Display({ subsets: ["latin"], display: "swap", weight: "400" });
-const fraunces = Fraunces({ subsets: ["latin"], display: "swap", weight: "600" });
-const bricolage = Bricolage_Grotesque({ subsets: ["latin"], display: "swap" });
-const cormorant = Cormorant({ subsets: ["latin"], display: "swap", weight: "600" });
-const playfair = Playfair_Display({ subsets: ["latin"], display: "swap", weight: "700" });
 
 export const metadata: Metadata = {
   title: "Design System – Flo Lenormand",
@@ -65,14 +56,14 @@ export default function DesignSystem() {
         </p>
       </div>
 
-      {/* ─── Font Exploration ───────────────────────────────── */}
-      <Section title="Type Direction" note="✓ Locked — Inter title 28px · Geist body 18px">
+      {/* ─── Type Direction ─────────────────────────────────── */}
+      <Section title="Type Direction" note="✓ Locked — Playfair Display title · Geist body 18px">
         <div className="flex gap-8 text-xs font-mono text-gray-400 mb-8">
-          <span>Headings → Inter · font-sans</span>
+          <span>Headings → Playfair Display · font-sans</span>
           <span>Body / prose → Geist · font-body</span>
         </div>
 
-        <h2 className="text-[28px] font-semibold text-gray-900 leading-tight tracking-[-0.02em] mb-3">
+        <h2 className="text-[28px] font-bold text-gray-900 leading-tight mb-3">
           I built a dashboard with AI agents, then deleted everything
         </h2>
         <time className="text-sm text-gray-400 block mb-8">March 16, 2026</time>
@@ -96,83 +87,11 @@ export default function DesignSystem() {
         </p>
 
         <div className="mt-8 space-y-1">
-          <Label>h1/h2/h3 — font-sans (Inter) · applied via CSS globally</Label>
-          <Label>body — font-body (Geist) · set on &lt;body&gt; in globals.css</Label>
-          <Label>title size — text-[28px] · tracking-[-0.02em] · leading-tight</Label>
+          <Label>h1/h2/h3 — Playfair Display · font-sans · applied via CSS globally</Label>
+          <Label>body — Geist · font-body · set on &lt;body&gt; in globals.css</Label>
+          <Label>title — text-[28px] · font-bold · leading-tight</Label>
           <Label>prose body — text-lg (18px) · leading-[1.8]</Label>
         </div>
-      </Section>
-
-      {/* ─── Title Font Exploration ─────────────────────────── */}
-      <Section title="Title Font Exploration" note="Geist body is fixed — pick a title font">
-        {[
-          {
-            label: "A — Inter (current)",
-            note: "Clean UI font. Neutral to the point of feeling like a template.",
-            titleClass: spaceGrotesk.className,
-            useInter: true,
-          },
-          {
-            label: "B — Space Grotesk",
-            note: "Geometric but human. Irregular details give it warmth. Common in design portfolios for a reason.",
-            titleClass: spaceGrotesk.className,
-            useInter: false,
-          },
-          {
-            label: "C — Syne",
-            note: "Very distinctive. Wide, confident, slightly unconventional. Makes a statement.",
-            titleClass: syne.className,
-            useInter: false,
-          },
-          {
-            label: "D — DM Serif Display",
-            note: "Elegant serif for display sizes only. Contrast with Geist body is striking. Very editorial.",
-            titleClass: dmSerifDisplay.className,
-            useInter: false,
-          },
-          {
-            label: "E — Fraunces",
-            note: "The wonky one. Optical size variable font named after a Joyce poem. Warm, literary, distinctive.",
-            titleClass: fraunces.className,
-            useInter: false,
-          },
-          {
-            label: "F — Bricolage Grotesque",
-            note: "2023. Humanist grotesque with intentional irregularity — feels handmade, not generated. The most distinctive grotesque on Google Fonts right now.",
-            titleClass: bricolage.className,
-            useInter: false,
-          },
-          {
-            label: "G — Cormorant",
-            note: "One designer, years of work, no commission. A revival of Garamond as a labor of pure love. Extremely refined — the contrast with Geist body is striking.",
-            titleClass: cormorant.className,
-            useInter: false,
-          },
-          {
-            label: "H — Playfair Display",
-            note: "Inspired by Enlightenment-era type. Strong, confident, editorial. Bold enough that it has real presence at 28px.",
-            titleClass: playfair.className,
-            useInter: false,
-          },
-        ].map((opt, i) => (
-          <div key={opt.label} className={i < 7 ? "mb-12" : ""}>
-            <p className="text-xs font-mono text-gray-500 mb-1">{opt.label}</p>
-            <p className="text-xs text-gray-400 mb-5 max-w-sm">{opt.note}</p>
-            <div className={opt.useInter ? "" : opt.titleClass}>
-              <p className="text-[28px] font-semibold text-gray-900 leading-tight tracking-[-0.02em] mb-1">
-                I built a dashboard with AI agents, then deleted everything
-              </p>
-              <p className="text-[28px] font-semibold text-gray-900 leading-tight tracking-[-0.02em] mb-4">
-                Design principles helped me stop bad design behavior
-              </p>
-            </div>
-            <p className="text-lg text-gray-800 leading-[1.8]" style={{ fontFamily: "var(--font-geist-var), ui-sans-serif, sans-serif" }}>
-              Body text stays in Geist — only the title changes. Notice how the personality of the
-              title shifts the entire mood of the page.
-            </p>
-            {i < 4 && <div className="mt-10 border-b border-gray-100" />}
-          </div>
-        ))}
       </Section>
 
       {/* ─── Color Exploration ──────────────────────────────── */}
