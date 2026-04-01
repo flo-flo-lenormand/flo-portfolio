@@ -6,6 +6,7 @@ import { messages } from "@/lib/chat-data";
 import SafeWord from "@/components/magic-words/safe-word";
 import ExpressiveWord from "@/components/magic-words/expressive-word";
 import SmartWord from "@/components/magic-words/smart-word";
+import MslWord from "@/components/magic-words/msl-word";
 
 interface Article {
   slug: string;
@@ -85,7 +86,7 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
             then <ExpressiveWord />
           </motion.span>
           <motion.span className="block mt-6" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.95)}>
-            Now I&apos;m making them <SmartWord /><br />at Meta Superintelligence Labs
+            Now I&apos;m making them <SmartWord /><br />at <MslWord />
           </motion.span>
         </h1>
 
