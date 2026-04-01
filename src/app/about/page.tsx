@@ -26,28 +26,12 @@ export default function About() {
                 <p className="text-base md:text-lg text-gray-800 leading-relaxed">
                   {message.text}
                 </p>
-                {message.reaction && (
-                  <span className="text-sm text-gray-400 mt-1 block">
-                    {message.reaction.emoji}
-                  </span>
-                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-16 pt-8 border-t border-gray-200">
-        <p className="text-sm text-gray-500 mb-1">
-          if this resonated, i&apos;d love to hear from you.
-        </p>
-        <a
-          href="mailto:florent.lenormand@icloud.com"
-          className="text-sm text-gray-700 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-600 transition-colors"
-        >
-          florent.lenormand@icloud.com
-        </a>
-      </div>
     </div>
   );
 }
