@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Syne, DM_Serif_Display, Fraunces } from "next/font/google";
+import { Space_Grotesk, Syne, DM_Serif_Display, Fraunces, Bricolage_Grotesque, Cormorant, Playfair_Display } from "next/font/google";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], display: "swap" });
 const syne = Syne({ subsets: ["latin"], display: "swap" });
 const dmSerifDisplay = DM_Serif_Display({ subsets: ["latin"], display: "swap", weight: "400" });
 const fraunces = Fraunces({ subsets: ["latin"], display: "swap", weight: "600" });
+const bricolage = Bricolage_Grotesque({ subsets: ["latin"], display: "swap" });
+const cormorant = Cormorant({ subsets: ["latin"], display: "swap", weight: "600" });
+const playfair = Playfair_Display({ subsets: ["latin"], display: "swap", weight: "700" });
 
 export const metadata: Metadata = {
   title: "Design System – Flo Lenormand",
@@ -133,8 +136,26 @@ export default function DesignSystem() {
             titleClass: fraunces.className,
             useInter: false,
           },
+          {
+            label: "F — Bricolage Grotesque",
+            note: "2023. Humanist grotesque with intentional irregularity — feels handmade, not generated. The most distinctive grotesque on Google Fonts right now.",
+            titleClass: bricolage.className,
+            useInter: false,
+          },
+          {
+            label: "G — Cormorant",
+            note: "One designer, years of work, no commission. A revival of Garamond as a labor of pure love. Extremely refined — the contrast with Geist body is striking.",
+            titleClass: cormorant.className,
+            useInter: false,
+          },
+          {
+            label: "H — Playfair Display",
+            note: "Inspired by Enlightenment-era type. Strong, confident, editorial. Bold enough that it has real presence at 28px.",
+            titleClass: playfair.className,
+            useInter: false,
+          },
         ].map((opt, i) => (
-          <div key={opt.label} className={i < 4 ? "mb-12" : ""}>
+          <div key={opt.label} className={i < 7 ? "mb-12" : ""}>
             <p className="text-xs font-mono text-gray-500 mb-1">{opt.label}</p>
             <p className="text-xs text-gray-400 mb-5 max-w-sm">{opt.note}</p>
             <div className={opt.useInter ? "" : opt.titleClass}>
