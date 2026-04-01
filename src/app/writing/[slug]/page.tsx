@@ -23,6 +23,11 @@ export async function generateMetadata({
     return {
       title: `${article.title} - Flo Lenormand`,
       description: article.description,
+      twitter: {
+        card: "summary",
+        title: article.title,
+        description: article.description,
+      },
     };
   } catch {
     return { title: "Not Found" };

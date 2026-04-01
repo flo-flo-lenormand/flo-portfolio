@@ -18,6 +18,12 @@ export const metadata: Metadata = {
       "Product Designer at Meta. Designing AI agents at MSL. Writing about design, AI, and the things I get wrong.",
     type: "website",
   },
+  twitter: {
+    card: "summary",
+    title: "Flo Lenormand",
+    description:
+      "Product Designer at Meta. Designing AI agents at MSL. Writing about design, AI, and the things I get wrong.",
+  },
 };
 
 export default function RootLayout({
