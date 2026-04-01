@@ -62,63 +62,34 @@ export default function DesignSystem() {
       </div>
 
       {/* ─── Font Exploration ───────────────────────────────── */}
-      <Section title="Font Exploration" note="✓ Geist body 18px · Inter title — pick title size">
+      <Section title="Type Direction" note="✓ Locked — Inter title 28px · Geist body 18px">
+        <p className="text-xs font-mono text-sand-500 mb-1">Inter title · Geist body</p>
+        <p className="text-xs text-sand-400 mb-6">Title: Inter 28px semibold · Body: Geist 18px · line-height 1.8</p>
 
-        {[
-          {
-            label: "C1 — Inter title 24px (text-2xl) · Geist body 18px",
-            note: "Current title size. Body is now Geist 18px.",
-            titleClass: "text-2xl",
-          },
-          {
-            label: "C2 — Inter title 28px · Geist body 18px",
-            note: "Slightly more presence. Still understated.",
-            titleClass: "text-[28px]",
-          },
-          {
-            label: "C3 — Inter title 32px (text-3xl) · Geist body 18px",
-            note: "Confident jump. Clear hierarchy between title and body.",
-            titleClass: "text-3xl",
-          },
-          {
-            label: "C4 — Inter title 36px · Geist body 18px",
-            note: "Editorial. The title becomes the first thing you read.",
-            titleClass: "text-[36px]",
-          },
-        ].map((opt, i) => (
-          <div key={opt.label} className={i < 3 ? "mb-14" : ""}>
-            <p className="text-xs font-mono text-sand-500 mb-1">{opt.label}</p>
-            <p className="text-xs text-sand-400 mb-6">{opt.note}</p>
+        <h2 className="text-[28px] font-semibold text-sand-900 leading-tight mb-3">
+          I built a dashboard with AI agents, then deleted everything
+        </h2>
+        <time className="text-sm text-sand-400 block mb-8">March 16, 2026</time>
 
-            <h2 className={`${opt.titleClass} font-semibold text-sand-900 leading-tight mb-3`}>
-              I built a dashboard with AI agents, then deleted everything
-            </h2>
-            <time className="text-sm text-sand-400 block mb-8">March 16, 2026</time>
-
-            <div className={geist.className}>
-              <p className="text-lg text-sand-800 leading-[1.8] mb-5">
-                I spent weeks building a personal productivity dashboard with Claude Code.
-                It had everything: a background agent scanning my Google Chat every five minutes,
-                a morning briefing system, a calendar integration, a creative assistant scraping
-                design inspiration, a content agent drafting Threads posts. It looked impressive.
-                Multiple agent pages, each with their own personality and avatar. Animated breathing
-                dots. Mood indicators.
-              </p>
-              <p className="text-lg text-sand-800 leading-[1.8] mb-5">
-                Then I started actually using it. The draft replies sat there unreviewed because
-                I&apos;d already replied in GChat directly. The calendar section told me things I
-                already knew from looking at my phone. The morning briefing was interesting but not
-                actionable. So I deleted it. All of it.
-              </p>
-              <p className="text-sm text-sand-500 leading-relaxed">
-                The paradox of building with AI is that you can build so fast that you outrun your actual needs.
-              </p>
-            </div>
-
-            {i < 3 && <div className="mt-10 border-b border-sand-100" />}
-          </div>
-        ))}
-
+        <div className={geist.className}>
+          <p className="text-lg text-sand-800 leading-[1.8] mb-5">
+            I spent weeks building a personal productivity dashboard with Claude Code.
+            It had everything: a background agent scanning my Google Chat every five minutes,
+            a morning briefing system, a calendar integration, a creative assistant scraping
+            design inspiration, a content agent drafting Threads posts. It looked impressive.
+            Multiple agent pages, each with their own personality and avatar. Animated breathing
+            dots. Mood indicators.
+          </p>
+          <p className="text-lg text-sand-800 leading-[1.8] mb-5">
+            Then I started actually using it. The draft replies sat there unreviewed because
+            I&apos;d already replied in GChat directly. The calendar section told me things I
+            already knew from looking at my phone. The morning briefing was interesting but not
+            actionable. So I deleted it. All of it.
+          </p>
+          <p className="text-sm text-sand-500 leading-relaxed">
+            The paradox of building with AI is that you can build so fast that you outrun your actual needs.
+          </p>
+        </div>
       </Section>
 
       {/* ─── Colors ─────────────────────────────────────────── */}
