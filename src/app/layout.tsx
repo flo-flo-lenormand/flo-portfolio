@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -58,6 +59,7 @@ export default function RootLayout({
         <main className="flex-1 w-full max-w-2xl mx-auto px-6 pb-20">
           {children}
         </main>
+        <Analytics />
         <footer className="w-full max-w-2xl mx-auto px-6 py-8 border-t border-sand-200">
           <div className="flex gap-6 text-sm text-sand-400">
             <a
