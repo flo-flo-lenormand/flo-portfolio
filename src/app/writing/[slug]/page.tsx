@@ -52,20 +52,22 @@ export default async function ArticlePage({
     <article className="pt-8">
       <Link
         href="/"
-        className="text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8 inline-block"
+        className="animate-in animate-delay-0 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8 inline-block"
       >
         &larr; Back
       </Link>
 
       <header className="mb-10">
-        <h1 className="text-[32px] md:text-[48px] font-extrabold text-gray-900 leading-tight tracking-tight mb-3">
+        <h1 className="animate-in animate-delay-1 text-[32px] md:text-[48px] font-extrabold text-gray-900 leading-tight tracking-tight mb-3">
           {article.title}
         </h1>
-        <time className="text-sm text-gray-400">{date}</time>
+        <time className="animate-in animate-delay-2 text-sm text-gray-400 block">
+          {date}
+        </time>
       </header>
 
       <div
-        className="prose"
+        className="animate-in animate-delay-3 prose"
         dangerouslySetInnerHTML={{ __html: article.content }}
       />
     </article>

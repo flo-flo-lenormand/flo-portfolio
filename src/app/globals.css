@@ -146,3 +146,43 @@ h1, h2, h3, h4, h5, h6 {
 ::selection {
   background-color: var(--color-gray-200);
 }
+
+/* ── Enter animations ────────────────────────────────────────
+   CSS-only stagger — keyframes for one-shot enter sequences.
+   Use .animate-in with a .animate-delay-* class on each chunk.
+───────────────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.animate-in {
+  opacity: 0;
+  animation: fadeInUp 500ms ease-out forwards;
+  will-change: transform, opacity, filter;
+}
+
+.animate-delay-0 { animation-delay: 0ms; }
+.animate-delay-1 { animation-delay: 100ms; }
+.animate-delay-2 { animation-delay: 200ms; }
+.animate-delay-3 { animation-delay: 350ms; }
+
+/* ── Text wrapping ───────────────────────────────────────────
+   balance: prevents awkward single-word last lines on headings
+   pretty:  prevents orphans in body copy
+───────────────────────────────────────────────────────────── */
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+.prose p {
+  text-wrap: pretty;
+}
