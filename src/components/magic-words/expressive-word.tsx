@@ -41,8 +41,13 @@ export default function ExpressiveWord() {
       });
     } else {
       controls.current?.stop();
-      controls.current = null;
-      ref.current.style.color = "";
+      controls.current = animate(
+        ref.current,
+        { color: "#18181b" },
+        { duration: 0.4, ease: [0, 0, 0.2, 1], onComplete: () => {
+          if (ref.current) ref.current.style.color = "";
+        }}
+      );
     }
     return () => {
       controls.current?.stop();
