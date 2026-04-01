@@ -16,7 +16,7 @@ export default function Home() {
     <div className="pt-8">
       {/* Intro */}
       <section className="mb-16">
-        <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
+        <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-xl">
           Product Designer at Meta, designing AI agents.
           <br />
           I write about design, AI, and the things I get wrong.

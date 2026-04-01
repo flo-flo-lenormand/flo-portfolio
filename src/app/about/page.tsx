@@ -9,7 +9,7 @@ export default function About() {
     <div className="pt-8">
       <h1 className="text-[32px] md:text-[48px] font-extrabold text-gray-900 leading-tight tracking-tight mb-8">About</h1>
 
-      <div className="space-y-5 text-gray-800 leading-relaxed">
+      <div className="space-y-5 text-base md:text-lg text-gray-800 leading-relaxed">
         <p>
           I&apos;m Flo, a product designer at Meta. I currently work at Meta
           Superintelligence Labs (MSL), designing AI agent experiences. Before

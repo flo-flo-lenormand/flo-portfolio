@@ -74,10 +74,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .prose p {
-  font-size: 1.125rem; /* 18px */
+  font-size: 1rem; /* 16px mobile */
   margin-bottom: 1.5rem;
   line-height: 1.8;
   color: var(--color-gray-800);
+}
+
+@media (min-width: 768px) {
+  .prose p {
+    font-size: 1.125rem; /* 18px desktop */
+  }
 }
 
 .prose a {
@@ -98,10 +104,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .prose li {
-  font-size: 1.125rem; /* 18px */
+  font-size: 1rem; /* 16px mobile */
   margin-bottom: 0.5rem;
   line-height: 1.75;
   color: var(--color-gray-800);
+}
+
+@media (min-width: 768px) {
+  .prose li {
+    font-size: 1.125rem; /* 18px desktop */
+  }
 }
 
 .prose ul li {
