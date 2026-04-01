@@ -96,6 +96,90 @@ export default function DesignSystem() {
         </div>
       </Section>
 
+      {/* ─── Color Exploration ──────────────────────────────── */}
+      <Section title="Color Exploration" note="Three gray directions — pick one">
+
+        {[
+          {
+            label: "A — Neutral",
+            note: "Pure, temperature-free gray. No warmth, no cool. Maximum flexibility — works with any accent.",
+            steps: [
+              { hex: "#fafafa", label: "50" },
+              { hex: "#f5f5f5", label: "100" },
+              { hex: "#e5e5e5", label: "200" },
+              { hex: "#d4d4d4", label: "300" },
+              { hex: "#a3a3a3", label: "400" },
+              { hex: "#737373", label: "500" },
+              { hex: "#525252", label: "600" },
+              { hex: "#404040", label: "700" },
+              { hex: "#262626", label: "800" },
+              { hex: "#171717", label: "900" },
+            ],
+          },
+          {
+            label: "B — Cool / Zinc",
+            note: "Slight blue-gray tint. Modern, technical, precise. What Linear, Vercel, and Notion use.",
+            steps: [
+              { hex: "#fafafa", label: "50" },
+              { hex: "#f4f4f5", label: "100" },
+              { hex: "#e4e4e7", label: "200" },
+              { hex: "#d1d1d6", label: "300" },
+              { hex: "#a1a1aa", label: "400" },
+              { hex: "#71717a", label: "500" },
+              { hex: "#52525b", label: "600" },
+              { hex: "#3f3f46", label: "700" },
+              { hex: "#27272a", label: "800" },
+              { hex: "#18181b", label: "900" },
+            ],
+          },
+          {
+            label: "C — Warm Neutral / Stone",
+            note: "Faintest warmth — not sand, not beige, but not cold either. More editorial, more human.",
+            steps: [
+              { hex: "#fafaf9", label: "50" },
+              { hex: "#f5f5f4", label: "100" },
+              { hex: "#e7e5e4", label: "200" },
+              { hex: "#d6d3d1", label: "300" },
+              { hex: "#a8a29e", label: "400" },
+              { hex: "#78716c", label: "500" },
+              { hex: "#57534e", label: "600" },
+              { hex: "#44403c", label: "700" },
+              { hex: "#292524", label: "800" },
+              { hex: "#1c1917", label: "900" },
+            ],
+          },
+        ].map((palette) => (
+          <div key={palette.label} className="mb-10 last:mb-0">
+            <p className="text-xs font-mono text-sand-500 mb-1">{palette.label}</p>
+            <p className="text-xs text-sand-400 mb-4">{palette.note}</p>
+            <div className="grid grid-cols-10 gap-1 mb-3">
+              {palette.steps.map((s) => (
+                <div key={s.label}>
+                  <div
+                    className="h-10 rounded-sm"
+                    style={{ backgroundColor: s.hex }}
+                  />
+                  <p className="text-xs font-mono mt-1" style={{ color: "#9a8568", fontSize: "10px" }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+            {/* Live text preview */}
+            <div className="mt-4 p-4 rounded" style={{ backgroundColor: palette.steps[0].hex }}>
+              <p className="font-semibold mb-1" style={{ color: palette.steps[9].hex, fontSize: "15px" }}>
+                Heading — {palette.label}
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: palette.steps[7].hex }}>
+                Body text reads here. The quick brown fox. Notice how the temperature of the gray affects the reading feel.
+              </p>
+              <p className="text-xs mt-2" style={{ color: palette.steps[4].hex }}>
+                Metadata · April 2026
+              </p>
+            </div>
+          </div>
+        ))}
+
+      </Section>
+
       {/* ─── Colors ─────────────────────────────────────────── */}
       <Section title="Colors" note="Sand palette — 10 steps">
         <div className="grid grid-cols-5 gap-2">
