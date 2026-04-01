@@ -40,14 +40,18 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
       animate="visible"
       variants={container}
     >
-      {/* Intro — pinned bubble */}
+      {/* Intro */}
       <motion.section className="mb-16" variants={item} transition={itemTransition}>
-        <div className="flex flex-col items-end gap-1">
-          <span className="text-xs text-gray-400">pinned</span>
-          <div className="bg-bubble-blue text-white rounded-[18px] rounded-tr-[4px] px-4 py-3 max-w-[75%] text-base leading-snug">
-            I made message bubbles safe, then expressive, now smart.
-          </div>
-        </div>
+        <h1 className="text-2xl font-semibold text-gray-900 leading-snug tracking-tight mb-4">
+          <span className="block">I made message bubbles safe,</span>
+          <span className="block">then expressive,</span>
+          <span className="block">now smart.</span>
+        </h1>
+        <p className="text-base text-gray-500 leading-relaxed">
+          Product designer at Meta, working on AI agents at Meta Superintelligence Labs.
+          <br />
+          Working hard to automate my design workflow so I can go surfing.
+        </p>
       </motion.section>
 
       {/* Articles */}
