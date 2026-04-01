@@ -3,6 +3,9 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { messages } from "@/lib/chat-data";
+import SafeWord from "@/components/magic-words/safe-word";
+import ExpressiveWord from "@/components/magic-words/expressive-word";
+import SmartWord from "@/components/magic-words/smart-word";
 
 interface Article {
   slug: string;
@@ -75,22 +78,15 @@ export default function HomeContent({ articles }: { articles: Article[] }) {
       {/* Title */}
       <section className="mb-16">
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight tracking-tight mb-6">
-          {[
-            { text: "I made message bubbles safe", delay: 0.15 },
-            { text: "then expressive", delay: 0.55 },
-            { text: "now smart", delay: 0.95 },
-          ].map(({ text, delay }) => (
-            <motion.span
-              key={text}
-              className="block"
-              initial="hidden"
-              animate="visible"
-              variants={lineVariant}
-              transition={lineTransition(delay)}
-            >
-              {text}
-            </motion.span>
-          ))}
+          <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.15)}>
+            I made message bubbles <SafeWord />
+          </motion.span>
+          <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.55)}>
+            then <ExpressiveWord />
+          </motion.span>
+          <motion.span className="block" initial="hidden" animate="visible" variants={lineVariant} transition={lineTransition(0.95)}>
+            now <SmartWord />
+          </motion.span>
         </h1>
 
         <motion.div
