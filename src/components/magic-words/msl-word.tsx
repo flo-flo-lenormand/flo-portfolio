@@ -1,30 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
+
+const PARTS = [
+  { abbr: "M", full: "Meta\u00a0" },
+  { abbr: "S", full: "Superintelligence\u00a0" },
+  { abbr: "L", full: "Labs" },
+];
 
 export default function MslWord() {
   const [hovered, setHovered] = useState(false);
 
   return (
     <span
-      className="inline-block cursor-default"
+      className="inline-flex cursor-default"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => setHovered((v) => !v)}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
+      {PARTS.map(({ abbr, full }, i) => (
         <motion.span
-          key={hovered ? "full" : "abbr"}
-          initial={{ opacity: 0, filter: "blur(4px)" }}
-          animate={{ opacity: 1, filter: "blur(0px)" }}
-          exit={{ opacity: 0, filter: "blur(4px)" }}
-          transition={{ duration: 0.2, ease: [0.25, 0, 0, 1] }}
-          className="inline-block"
+          key={abbr}
+          layout
+          className="inline-block overflow-hidden whitespace-nowrap"
+          transition={{
+            layout: {
+              type: "spring",
+              duration: 0.5,
+              bounce: 0.05,
+              delay: hovered ? i * 0.08 : (PARTS.length - 1 - i) * 0.05,
+            },
+          }}
         >
-          {hovered ? "Meta Superintelligence Labs" : "MSL"}
+          {hovered ? full : abbr}
         </motion.span>
-      </AnimatePresence>
+      ))}
     </span>
   );
 }
