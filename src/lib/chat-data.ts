@@ -7,11 +7,11 @@ export const chatBlocks: ChatBlock[] = [
   {
     mum: ["Flo, you're my son and I still don't understand what you do..."],
     flo: [
-      "I'm a product designer, meaning businesses pay me (way more than they should) to think and draw",
+      "I'm a product designer, meaning I'm getting paid to think and draw",
     ],
   },
   {
-    mum: ["I'm not sure this help, honestly"],
+    mum: ["I'm not sure this helps, honestly"],
     flo: [
       "So remember, I started with safety. My job was to make sure conversations stay safe on Instagram. I designed systems that stop the worst from happening before someone has to live through it.",
     ],
@@ -25,12 +25,12 @@ export const chatBlocks: ChatBlock[] = [
   },
   {
     mum: [
-      "I told people you were working on Amstragram",
-      "But now you work on AI.. What does design have to do with any of that?",
+      "I have no idea what you're talking about",
+      "But now you work on AI... What does design have to do with any of that?",
     ],
     flo: [
-      "yeah that's a great question. robots are entering the chat and they can do impressive things. i'm working hard to make sure they solve actual problems.",
-      "honestly.. what design means in this space keeps changing. and i love that",
+      "Yeah that's a great question. AI agents can do impressive things and I'm working hard to make sure they solve actual problems.",
+      "Honestly.. What design means in this space keeps changing, and I love that",
     ],
   },
   {
@@ -43,10 +43,10 @@ export const chatBlocks: ChatBlock[] = [
   },
   {
     mum: [
-      "And after an art school you went to fix parking.. i never really understood why",
+      "And after art school you went to fix parking.. i never really understood why",
     ],
     flo: [
-      "it was such a great opportunity. it got me to San Francisco, i was solo designer and Apple featured us three times!",
+      "It was such a great opportunity. It got me to San Francisco, I was solo designer and Apple featured us three times!",
     ],
   },
   {
