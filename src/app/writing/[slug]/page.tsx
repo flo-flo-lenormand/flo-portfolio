@@ -21,7 +21,7 @@ export async function generateMetadata({
   try {
     const article = await getArticleBySlug(slug);
     return {
-      title: `${article.title} - Flo Lenormand`,
+      title: `${article.title} - Flo`,
       description: article.description,
     };
   } catch {
@@ -46,16 +46,9 @@ export default async function ArticlePage({
     notFound();
   }
 
-  const date = new Date(article.date).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <ArticleContent
       title={article.title}
-      date={date}
       content={article.content}
     />
   );

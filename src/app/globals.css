@@ -1,46 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Colors ─────────────────────────────────────────────────
-     8-step zinc gray — each step has one semantic role:
-     50  → page background
-     100 → subtle surface (hover bg, code bg)
-     200 → borders, dividers, ::selection, underline decorations
-     400 → muted / metadata (dates, placeholders)
-     500 → secondary text (nav, footer links)
-     600 → hover on secondary, intro text, blockquote
-     800 → body / prose text
-     900 → headings, primary text
-  ────────────────────────────────────────────────────────── */
-  --color-gray-50:  #ffffff;
-  --color-gray-100: #f4f4f5;
-  --color-gray-200: #e4e4e7;
-  --color-gray-400: #a1a1aa;
-  --color-gray-500: #71717a;
-  --color-gray-600: #52525b;
-  --color-gray-800: #27272a;
-  --color-gray-900: #18181b;
-
-  /* ── Typography ──────────────────────────────────────────── */
-  /* Geist — everything. Weight creates hierarchy, not font-switching. */
   --font-sans: var(--font-geist-var), ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-geist-var), ui-sans-serif, system-ui, sans-serif;
 
-  /* ── Spacing ─────────────────────────────────────────────── */
-  --spacing-page-top: 2rem;        /* pt-8  — all pages */
-  --spacing-section-gap: 4rem;     /* mb-16 — intro section */
-  --spacing-content-bottom: 5rem;  /* pb-20 — main content */
-  --spacing-container-x: 1.5rem;  /* px-6  — side padding */
+  /* Bubble */
+  --color-bubble: #f2f4f7;
+  --color-bubble-text: #080809;
 
-  /* ── Transitions ─────────────────────────────────────────── */
-  --duration-colors: 150ms;        /* transition-colors default */
-  --duration-decoration: 0.2s;     /* prose link underline */
-
-  /* ── Bubble colors ───────────────────────────────────────── */
-  --color-bubble-blue: #007aff;
-  --color-bubble-blue-text: #ffffff;
-  --color-bubble-gray: var(--color-gray-200);
-  --color-bubble-gray-text: var(--color-gray-900);
+  /* Keys */
+  --color-key-border: #dcdcdc;
 }
 
 html {
@@ -48,26 +16,35 @@ html {
 }
 
 body {
-  background-color: var(--color-gray-50);
-  color: var(--color-gray-900);
-  font-family: var(--font-body);
   font-feature-settings: "kern" 1, "liga" 1;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Headings use Inter */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-sans);
+/* ── Text wrapping ─────────────────────────────────── */
+h1, h2, h3 {
+  text-wrap: balance;
 }
 
-/* Article prose */
+::selection {
+  background-color: #e4e4e7;
+}
+
+/* ── Article prose ─────────────────────────────────── */
+.prose p {
+  font-size: 16px;
+  margin-bottom: 1.5rem;
+  line-height: 1.7;
+  color: black;
+  text-wrap: pretty;
+}
+
 .prose h2 {
   font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
-  color: var(--color-gray-900);
+  color: black;
 }
 
 .prose h3 {
@@ -76,32 +53,19 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
   margin-top: 2rem;
   margin-bottom: 0.75rem;
-  color: var(--color-gray-900);
-}
-
-.prose p {
-  font-size: 1rem; /* 16px mobile */
-  margin-bottom: 1.5rem;
-  line-height: 1.8;
-  color: var(--color-gray-800);
-}
-
-@media (min-width: 768px) {
-  .prose p {
-    font-size: 1.125rem; /* 18px desktop */
-  }
+  color: black;
 }
 
 .prose a {
-  color: var(--color-gray-600);
+  color: #52525b;
   text-decoration: underline;
-  text-decoration-color: var(--color-gray-200);
+  text-decoration-color: #e4e4e7;
   text-underline-offset: 3px;
   transition: text-decoration-color 0.2s;
 }
 
 .prose a:hover {
-  text-decoration-color: var(--color-gray-600);
+  text-decoration-color: #52525b;
 }
 
 .prose ul, .prose ol {
@@ -110,16 +74,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .prose li {
-  font-size: 1rem; /* 16px mobile */
+  font-size: 16px;
   margin-bottom: 0.5rem;
-  line-height: 1.75;
-  color: var(--color-gray-800);
-}
-
-@media (min-width: 768px) {
-  .prose li {
-    font-size: 1.125rem; /* 18px desktop */
-  }
+  line-height: 1.7;
+  color: black;
 }
 
 .prose ul li {
@@ -131,36 +89,31 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .prose blockquote {
-  border-left: 2px solid var(--color-gray-200);
+  border-left: 2px solid #e4e4e7;
   padding-left: 1rem;
   margin: 2rem 0;
-  color: var(--color-gray-600);
+  color: #52525b;
   font-style: italic;
 }
 
 .prose hr {
   border: none;
-  border-top: 1px solid var(--color-gray-200);
+  border-top: 1px solid #e4e4e7;
   margin: 2.5rem 0;
 }
 
 .prose strong {
   font-weight: 600;
-  color: var(--color-gray-900);
+  color: black;
 }
 
-::selection {
-  background-color: var(--color-gray-200);
+/* ── Shimmer animation for "smart" word ────────────── */
+@keyframes shimmer-ltr {
+  0% {
+    background-position: -250% center;
+  }
+  100% {
+    background-position: 250% center;
+  }
 }
 
-/* ── Text wrapping ───────────────────────────────────────────
-   balance: prevents awkward single-word last lines on headings
-   pretty:  prevents orphans in body copy
-───────────────────────────────────────────────────────────── */
-h1, h2, h3 {
-  text-wrap: balance;
-}
-
-.prose p {
-  text-wrap: pretty;
-}

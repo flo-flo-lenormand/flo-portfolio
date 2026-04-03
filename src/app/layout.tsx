@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import Link from "next/link";
-import PageTransition from "@/components/page-transition";
-import NavName from "@/components/nav-name";
-import Footer from "@/components/footer";
+import { Geist, Caveat } from "next/font/google";
 import "./globals.css";
 
 const geist = Geist({
@@ -12,14 +8,20 @@ const geist = Geist({
   variable: "--font-geist-var",
 });
 
+const caveat = Caveat({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-caveat-var",
+});
+
 export const metadata: Metadata = {
-  title: "Flo Lenormand",
+  title: "Flo",
   description:
-    "Flo Lenormand - Product Designer. I made message bubbles safe, then expressive, now smart. Writing about craft, AI, and what I learn along the way.",
+    "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.",
   openGraph: {
-    title: "Flo Lenormand",
+    title: "Flo",
     description:
-      "Flo Lenormand - Product Designer. I made message bubbles safe, then expressive, now smart. Writing about craft, AI, and what I learn along the way.",
+      "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.",
     type: "website",
   },
 };
@@ -30,17 +32,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} h-full`}>
-      <body className="min-h-full flex flex-col">
-        <header className="w-full max-w-2xl mx-auto px-6 pt-12 pb-6">
-          <nav className="flex items-center justify-between">
-            <NavName />
-          </nav>
-        </header>
-        <main className="flex-1 w-full max-w-2xl mx-auto px-6 pb-20">
-          <PageTransition>{children}</PageTransition>
-        </main>
-        <Footer />
+    <html lang="en" className={`${geist.variable} ${caveat.variable} h-full`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('pageshow', function(e) {
+                if (e.persisted) {
+                  window.location.reload();
+                }
+              });
+            `,
+          }}
+        />
+      </head>
+      <body className="h-full bg-white text-black font-sans">
+        {children}
       </body>
     </html>
   );

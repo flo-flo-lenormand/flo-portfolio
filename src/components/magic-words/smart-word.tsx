@@ -1,56 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
-const WORDS = [
-  "thinking",
-  "computing",
-  "surfing",
-  "hallucinating",
-  "floing",
-  "napping",
-  "procrastinating",
-  "forgetting",
-  "remembering",
-];
+import { useState } from "react";
 
 export default function SmartWord() {
   const [active, setActive] = useState(false);
-  const [wordIndex, setWordIndex] = useState(0);
-  const [displayed, setDisplayed] = useState("");
-
-  useEffect(() => {
-    if (!active) {
-      setDisplayed("");
-      setWordIndex(0);
-      return;
-    }
-
-    const word = WORDS[wordIndex];
-    const full = word + "...";
-
-    if (displayed.length < full.length) {
-      const isTypingDots = displayed.length >= word.length;
-      const delay = isTypingDots ? 220 : 45;
-      const timer = setTimeout(() => {
-        setDisplayed(full.slice(0, displayed.length + 1));
-      }, delay);
-      return () => clearTimeout(timer);
-    } else {
-      // Full word shown — jump straight to first char of next word, no empty frame
-      const timer = setTimeout(() => {
-        const nextIndex = (wordIndex + 1) % WORDS.length;
-        setWordIndex(nextIndex);
-        setDisplayed(WORDS[nextIndex][0]);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [active, displayed, wordIndex]);
-
-  // Spacer holds the hover area stable — never smaller than "smart",
-  // grows with the word as it types so the mouse never escapes
-  const spacer = active && displayed.length > "smart".length ? displayed : "smart";
-  const text = active ? displayed || "smart" : "smart";
 
   return (
     <span
@@ -59,11 +12,30 @@ export default function SmartWord() {
       onMouseLeave={() => setActive(false)}
       onClick={() => setActive((v) => !v)}
     >
-      <span className="invisible select-none pointer-events-none" aria-hidden="true">
-        {spacer}
-      </span>
-      <span className="absolute left-0 top-0 whitespace-nowrap" style={{ color: "inherit" }}>
-        {text}
+      {/* Base text - always visible */}
+      <span style={{ color: "inherit" }}>smart</span><span style={{ color: "inherit", fontWeight: 600 }}>,</span>
+
+      {/* Shimmer overlay - sweeps left to right across text */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%)",
+          backgroundSize: "250% 100%",
+          backgroundPosition: "-250% center",
+          backgroundClip: "text",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          color: "transparent",
+          animation: active ? "shimmer-ltr 3.5s ease-in-out infinite" : "none",
+          opacity: active ? 1 : 0,
+          transitionProperty: "opacity",
+          transitionDuration: "200ms",
+          transitionTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
+        }}
+      >
+        smart<span style={{ fontWeight: 600 }}>,</span>
       </span>
     </span>
   );

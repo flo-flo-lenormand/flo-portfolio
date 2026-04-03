@@ -19,7 +19,7 @@ export default function SafeWord() {
       onMouseLeave={() => setActive(false)}
       onClick={() => setActive((v) => !v)}
     >
-      safe,
+      safe
     </motion.span>
   );
 }
