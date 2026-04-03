@@ -24,6 +24,15 @@ const PRELOAD_IMAGES = [
   "/msl-written.png",
 ];
 
+// Heavy assets preloaded in background after home is visible
+const BACKGROUND_PRELOAD = [
+  "/background-panel-mum.png",
+  "/background-panel-article.png",
+  "/close-mum.png",
+  "/close-article.png",
+  "/backarrow.png",
+];
+
 function preloadImages(srcs: string[]): Promise<void[]> {
   return Promise.all(
     srcs.map(
@@ -127,9 +136,13 @@ const itemTransition = {
 export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }: HomeViewProps) {
   const [ready, setReady] = useState(false);
 
-  // Preload all images before showing content
+  // Preload home images before showing content, then panel assets in background
   useEffect(() => {
-    preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
+    preloadImages(PRELOAD_IMAGES).then(() => {
+      setReady(true);
+      // Preload heavy panel assets in background after home is visible
+      preloadImages(BACKGROUND_PRELOAD);
+    });
   }, []);
 
   if (!ready) return <div className="min-h-screen" />;
