@@ -14,15 +14,30 @@ const caveat = Caveat({
   variable: "--font-caveat-var",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flolenormand.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Flo",
   description:
     "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.",
+  alternates: {
+    canonical: siteUrl,
+  },
   openGraph: {
     title: "Flo",
     description:
       "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.",
     type: "website",
+    url: siteUrl,
+    images: [{ url: "/avatar.jpg", width: 1200, height: 630, alt: "Flo" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Flo",
+    description:
+      "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.",
+    images: ["/avatar.jpg"],
   },
 };
 

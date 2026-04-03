@@ -20,9 +20,24 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const article = await getArticleBySlug(slug);
+    const url = `/writing/${slug}`;
     return {
       title: `${article.title} - Flo`,
       description: article.description,
+      alternates: { canonical: url },
+      openGraph: {
+        title: article.title,
+        description: article.description,
+        type: "article",
+        url,
+        images: [{ url: "/avatar.jpg", width: 1200, height: 630, alt: article.title }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: article.title,
+        description: article.description,
+        images: ["/avatar.jpg"],
+      },
     };
   } catch {
     return { title: "Not Found" };
