@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 const staggerContainer = {
   hidden: {},
   visible: {
-    transition: { staggerChildren: 0.06, delayChildren: 0.15 },
+    transition: { staggerChildren: 0.3, delayChildren: 0.3 },
   },
 };
 
@@ -41,7 +41,7 @@ export default function ArticlesPanel({
     <div
       className="h-full flex flex-col relative"
       style={{
-        width: 550,
+        width: 510,
         backgroundImage: "url(/background-panel-mum.png)",
         backgroundSize: "cover",
         backgroundPosition: "left center",
@@ -51,7 +51,7 @@ export default function ArticlesPanel({
       {/* Inner wrapper flipped back so content reads normally */}
       <div className="h-full flex flex-col" style={{ transform: "scaleX(-1)" }}>
         {/* Close button - top left */}
-        <div className="flex justify-start p-4 relative z-10" style={{ paddingLeft: 140 }}>
+        <div className="flex justify-start p-4 relative z-10" style={{ paddingLeft: 100 }}>
           <button
             onClick={onClose}
             className="cursor-pointer"
@@ -60,10 +60,16 @@ export default function ArticlesPanel({
           </button>
         </div>
 
-        {/* Article list - scrollable */}
+        {/* Article list - snap scrollable */}
         <div
           className="flex-1 overflow-y-auto px-8"
-          style={{ scrollbarWidth: "none", paddingTop: "30vh", paddingBottom: "30vh" }}
+          style={{
+            scrollbarWidth: "none",
+            scrollSnapType: "y proximity",
+            scrollPaddingTop: "30vh",
+            paddingTop: "30vh",
+            paddingBottom: "30vh",
+          }}
         >
           <motion.div
             className="flex flex-col gap-8 ml-auto"
@@ -84,6 +90,9 @@ export default function ArticlesPanel({
                     ? { target: "_blank", rel: "noopener noreferrer" }
                     : {})}
                   className="block group"
+                  style={{
+                    scrollSnapAlign: "start",
+                  }}
                   variants={itemVariants}
                   transition={itemTransition}
                 >
@@ -116,25 +125,6 @@ export default function ArticlesPanel({
           </motion.div>
         </div>
 
-        {/* Top fade gradient */}
-        <div
-          className="absolute top-0 right-0 pointer-events-none"
-          style={{
-            height: 300,
-            width: "70%",
-            background: "linear-gradient(to bottom, white 20%, transparent 100%)",
-          }}
-        />
-
-        {/* Bottom fade gradient */}
-        <div
-          className="absolute bottom-0 right-0 pointer-events-none"
-          style={{
-            height: 300,
-            width: "70%",
-            background: "linear-gradient(to top, white 20%, transparent 100%)",
-          }}
-        />
       </div>
     </div>
   );

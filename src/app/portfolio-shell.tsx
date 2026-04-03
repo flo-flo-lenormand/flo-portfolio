@@ -67,7 +67,7 @@ export default function PortfolioShell({
             exit={{ x: "-100%" }}
             transition={{
               type: "spring",
-              duration: 0.4,
+              duration: 0.8,
               bounce: 0,
             }}
           >
@@ -87,7 +87,7 @@ export default function PortfolioShell({
             exit={{ x: "100%" }}
             transition={{
               type: "spring",
-              duration: 0.4,
+              duration: 0.8,
               bounce: 0,
             }}
           >

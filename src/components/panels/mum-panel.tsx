@@ -6,7 +6,7 @@ import { chatBlocks, type ChatBlock } from "@/lib/chat-data";
 const staggerContainer = {
   hidden: {},
   visible: {
-    transition: { staggerChildren: 0.08, delayChildren: 0.15 },
+    transition: { staggerChildren: 0.35, delayChildren: 0.3 },
   },
 };
 
@@ -115,14 +115,14 @@ export default function MumPanel({ onClose }: MumPanelProps) {
     <div
       className="h-full flex flex-col relative"
       style={{
-        width: 550,
+        width: 510,
         backgroundImage: "url(/background-panel-mum.png)",
         backgroundSize: "cover",
         backgroundPosition: "right center",
       }}
     >
       {/* Close button */}
-      <div className="flex justify-end p-4 relative z-10" style={{ paddingRight: 140 }}>
+      <div className="flex justify-end p-4 relative z-10" style={{ paddingRight: 100 }}>
         <button
           onClick={onClose}
           className="cursor-pointer"
@@ -131,10 +131,16 @@ export default function MumPanel({ onClose }: MumPanelProps) {
         </button>
       </div>
 
-      {/* Conversation - scrollable */}
+      {/* Conversation - snap scrollable */}
       <div
         className="flex-1 overflow-y-auto px-8"
-        style={{ scrollbarWidth: "none", paddingTop: "30vh", paddingBottom: "30vh" }}
+        style={{
+          scrollbarWidth: "none",
+          scrollSnapType: "y proximity",
+          scrollPaddingTop: "30vh",
+          paddingTop: "30vh",
+          paddingBottom: "30vh",
+        }}
       >
         <motion.div
           className="flex flex-col"
@@ -147,7 +153,10 @@ export default function MumPanel({ onClose }: MumPanelProps) {
             <motion.div
               key={blockIndex}
               className="flex flex-col"
-              style={{ gap: 20 }}
+              style={{
+                gap: 20,
+                scrollSnapAlign: "start",
+              }}
               variants={itemVariants}
               transition={itemTransition}
             >
@@ -161,25 +170,6 @@ export default function MumPanel({ onClose }: MumPanelProps) {
         </motion.div>
       </div>
 
-      {/* Top fade gradient */}
-      <div
-        className="absolute top-0 left-0 pointer-events-none"
-        style={{
-          height: 300,
-          width: "70%",
-          background: "linear-gradient(to bottom, white 20%, transparent 100%)",
-        }}
-      />
-
-      {/* Bottom fade gradient */}
-      <div
-        className="absolute bottom-0 left-0 pointer-events-none"
-        style={{
-          height: 300,
-          width: "70%",
-          background: "linear-gradient(to top, white 20%, transparent 100%)",
-        }}
-      />
     </div>
   );
 }

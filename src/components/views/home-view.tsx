@@ -109,7 +109,7 @@ function LogoWithLabel({
 const staggerVariants = {
   hidden: {},
   visible: {
-    transition: { staggerChildren: 0.12 },
+    transition: { staggerChildren: 0.4 },
   },
 };
 
