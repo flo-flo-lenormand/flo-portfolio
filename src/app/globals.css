@@ -107,13 +107,4 @@ h1, h2, h3 {
   color: black;
 }
 
-/* ── Shimmer animation for "smart" word ────────────── */
-@keyframes shimmer-ltr {
-  0% {
-    background-position: -250% center;
-  }
-  100% {
-    background-position: 250% center;
-  }
-}
 
