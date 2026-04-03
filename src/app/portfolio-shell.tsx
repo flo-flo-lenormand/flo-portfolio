@@ -57,7 +57,7 @@ export default function PortfolioShell({
       />
 
       {/* Left panel: Mum conversation */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false} mode="wait">
         {openPanel === "mum" && (
           <motion.div
             key="mum-panel"
@@ -77,7 +77,7 @@ export default function PortfolioShell({
       </AnimatePresence>
 
       {/* Right panel: Articles */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false} mode="wait">
         {openPanel === "articles" && (
           <motion.div
             key="articles-panel"

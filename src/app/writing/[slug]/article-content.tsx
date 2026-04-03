@@ -57,7 +57,7 @@ export default function ArticleContent({ title, content }: Props) {
             opacity: { duration: 0.9, ease: [0.25, 0, 0, 1] },
           }}
           className="font-extrabold text-black leading-tight tracking-tight mb-10"
-          style={{ fontSize: 32 }}
+          style={{ fontSize: 32, textWrap: "balance" as const }}
         >
           {title}
         </motion.h1>

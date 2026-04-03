@@ -1,6 +1,25 @@
 "use client";
 
+import { motion } from "motion/react";
 import { chatBlocks, type ChatBlock } from "@/lib/chat-data";
+
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.08, delayChildren: 0.15 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12, filter: "blur(4px)" },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+};
+
+const itemTransition = {
+  y: { type: "spring" as const, duration: 0.4, bounce: 0 },
+  filter: { type: "spring" as const, duration: 0.4, bounce: 0 },
+  opacity: { duration: 0.6, ease: [0.25, 0, 0, 1] as [number, number, number, number] },
+};
 
 function MumBubble({
   text,
@@ -9,9 +28,6 @@ function MumBubble({
   text: string;
   position: "single" | "top" | "bottom";
 }) {
-  // Single bubble: all 18px
-  // Top of stack: bottom-left 4px
-  // Bottom of stack: top-left 4px
   // border-radius: top-left top-right bottom-right bottom-left
   const radius =
     position === "top"
@@ -81,7 +97,7 @@ function FloAnswer({ paragraphs }: { paragraphs: string[] }) {
         <p
           key={i}
           className="font-normal text-black"
-          style={{ fontSize: 16, lineHeight: "normal" }}
+          style={{ fontSize: 16, lineHeight: "normal", textWrap: "pretty" }}
         >
           {text}
         </p>
@@ -106,7 +122,7 @@ export default function MumPanel({ onClose }: MumPanelProps) {
       }}
     >
       {/* Close button */}
-      <div className="flex justify-end p-4" style={{ paddingRight: 140 }}>
+      <div className="flex justify-end p-4 relative z-10" style={{ paddingRight: 140 }}>
         <button
           onClick={onClose}
           className="cursor-pointer"
@@ -120,24 +136,32 @@ export default function MumPanel({ onClose }: MumPanelProps) {
         className="flex-1 overflow-y-auto px-8"
         style={{ scrollbarWidth: "none", paddingTop: "30vh", paddingBottom: "30vh" }}
       >
-        <div className="flex flex-col" style={{ gap: 90, maxWidth: 354 }}>
+        <motion.div
+          className="flex flex-col"
+          style={{ gap: 90, maxWidth: 354 }}
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
           {chatBlocks.map((block: ChatBlock, blockIndex: number) => (
-            <div
+            <motion.div
               key={blockIndex}
               className="flex flex-col"
               style={{ gap: 20 }}
+              variants={itemVariants}
+              transition={itemTransition}
             >
               <MumBubbleGroup
                 messages={block.mum}
                 showLabel={blockIndex === 0}
               />
               {block.flo && <FloAnswer paragraphs={block.flo} />}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
-      {/* Top fade gradient - only covers content area, not close button or paper edge */}
+      {/* Top fade gradient */}
       <div
         className="absolute top-0 left-0 pointer-events-none"
         style={{
@@ -147,7 +171,7 @@ export default function MumPanel({ onClose }: MumPanelProps) {
         }}
       />
 
-      {/* Bottom fade gradient - only covers content area, not paper edge */}
+      {/* Bottom fade gradient */}
       <div
         className="absolute bottom-0 left-0 pointer-events-none"
         style={{

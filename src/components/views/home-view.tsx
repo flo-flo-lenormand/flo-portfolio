@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import SafeWord from "@/components/magic-words/safe-word";
 import ExpressiveWord from "@/components/magic-words/expressive-word";
 import SmartWord from "@/components/magic-words/smart-word";
@@ -9,6 +10,32 @@ interface HomeViewProps {
   onMumClick: () => void;
   onWriteClick: () => void;
   onBackgroundClick: () => void;
+}
+
+// All images that need to load before revealing content
+const PRELOAD_IMAGES = [
+  "/ig.png",
+  "/messenger.png",
+  "/metaai.png",
+  "/stabilo.png",
+  "/i-write.png",
+  "/instagram-written.png",
+  "/messenger-written.png",
+  "/msl-written.png",
+];
+
+function preloadImages(srcs: string[]): Promise<void[]> {
+  return Promise.all(
+    srcs.map(
+      (src) =>
+        new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve(); // don't block on errors
+          img.src = src;
+        })
+    )
+  );
 }
 
 function LogoWithLabel({
@@ -39,6 +66,16 @@ function LogoWithLabel({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Extended hit area to 40x40 */}
+      <span
+        className="absolute"
+        style={{
+          top: -(40 - logoSize) / 2,
+          left: -(40 - logoSize) / 2,
+          width: 40,
+          height: 40,
+        }}
+      />
       <img
         src={logoSrc}
         alt={logoAlt}
@@ -69,11 +106,48 @@ function LogoWithLabel({
   );
 }
 
+const staggerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.12 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8, filter: "blur(4px)" },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+};
+
+const itemTransition = {
+  y: { type: "spring" as const, duration: 0.4, bounce: 0 },
+  filter: { type: "spring" as const, duration: 0.4, bounce: 0 },
+  opacity: { duration: 0.7, ease: [0.25, 0, 0, 1] as [number, number, number, number] },
+};
+
 export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }: HomeViewProps) {
+  const [ready, setReady] = useState(false);
+
+  // Preload all images before showing content
+  useEffect(() => {
+    preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
+  }, []);
+
+  if (!ready) return <div className="min-h-screen" />;
+
   return (
     <div className="flex items-center justify-center min-h-screen px-6" onClick={onBackgroundClick}>
-      <div className="flex flex-col gap-[28px]" style={{ width: 460 }}>
-        <p className="text-[22px] font-medium leading-normal text-black">
+      <motion.div
+        className="flex flex-col gap-[28px]"
+        style={{ width: 460 }}
+        initial="hidden"
+        animate="visible"
+        variants={staggerVariants}
+      >
+        <motion.p
+          className="text-[22px] font-medium leading-normal text-black"
+          variants={itemVariants}
+          transition={itemTransition}
+        >
           I made conversations <SafeWord /> on{" "}
           <LogoWithLabel
             logoSrc="/ig.png"
@@ -107,9 +181,13 @@ export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }
             labelWidth={202}
             labelOffset={{ top: 2, left: 32 }}
           />
-        </p>
+        </motion.p>
 
-        <p className="text-[22px] font-medium leading-normal text-black">
+        <motion.p
+          className="text-[22px] font-medium leading-normal text-black"
+          variants={itemVariants}
+          transition={itemTransition}
+        >
           <span
             onClick={(e) => { e.stopPropagation(); onMumClick(); }}
             className="cursor-pointer relative inline-block overflow-visible"
@@ -131,9 +209,13 @@ export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }
             <span className="relative">My mum</span>
           </span>{" "}
           says I design message bubbles and honestly she&apos;s not wrong
-        </p>
+        </motion.p>
 
-        <p className="text-[22px] font-medium leading-normal text-black">
+        <motion.p
+          className="text-[22px] font-medium leading-normal text-black"
+          variants={itemVariants}
+          transition={itemTransition}
+        >
           <span
             onClick={(e) => { e.stopPropagation(); onWriteClick(); }}
             className="cursor-pointer inline-block"
@@ -145,8 +227,8 @@ export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }
             />
           </span>{" "}
           about design on flat days
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </div>
   );
 }

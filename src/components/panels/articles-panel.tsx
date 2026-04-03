@@ -1,5 +1,25 @@
 "use client";
 
+import { motion } from "motion/react";
+
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.06, delayChildren: 0.15 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12, filter: "blur(4px)" },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+};
+
+const itemTransition = {
+  y: { type: "spring" as const, duration: 0.4, bounce: 0 },
+  filter: { type: "spring" as const, duration: 0.4, bounce: 0 },
+  opacity: { duration: 0.6, ease: [0.25, 0, 0, 1] as [number, number, number, number] },
+};
+
 interface Article {
   slug: string;
   title: string;
@@ -30,8 +50,8 @@ export default function ArticlesPanel({
     >
       {/* Inner wrapper flipped back so content reads normally */}
       <div className="h-full flex flex-col" style={{ transform: "scaleX(-1)" }}>
-        {/* Close button - top left, mirrored from mum panel */}
-        <div className="flex justify-start p-4" style={{ paddingLeft: 140 }}>
+        {/* Close button - top left */}
+        <div className="flex justify-start p-4 relative z-10" style={{ paddingLeft: 140 }}>
           <button
             onClick={onClose}
             className="cursor-pointer"
@@ -45,28 +65,31 @@ export default function ArticlesPanel({
           className="flex-1 overflow-y-auto px-8"
           style={{ scrollbarWidth: "none", paddingTop: "30vh", paddingBottom: "30vh" }}
         >
-          <div className="flex flex-col gap-8 ml-auto" style={{ maxWidth: 354 }}>
+          <motion.div
+            className="flex flex-col gap-8 ml-auto"
+            style={{ maxWidth: 354 }}
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
             {articles.map((article) => {
               const href = article.external || `/writing/${article.slug}`;
               const isExternal = !!article.external;
 
               return (
-                <a
+                <motion.a
                   key={article.slug}
                   href={href}
                   {...(isExternal
                     ? { target: "_blank", rel: "noopener noreferrer" }
                     : {})}
                   className="block group"
-                  style={{
-                    transitionProperty: "transform",
-                    transitionDuration: "150ms",
-                    transitionTimingFunction: "ease-out",
-                  }}
+                  variants={itemVariants}
+                  transition={itemTransition}
                 >
                   <h3
                     className="font-medium text-black leading-snug"
-                    style={{ fontSize: 18 }}
+                    style={{ fontSize: 18, textWrap: "balance" }}
                   >
                     {article.title}
                     {isExternal && (
@@ -78,6 +101,7 @@ export default function ArticlesPanel({
                       className="text-black/50 mt-1 leading-relaxed overflow-hidden"
                       style={{
                         fontSize: 14,
+                        textWrap: "pretty",
                         display: "-webkit-box",
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: "vertical" as const,
@@ -86,13 +110,13 @@ export default function ArticlesPanel({
                       {article.description}
                     </p>
                   )}
-                </a>
+                </motion.a>
               );
             })}
-          </div>
+          </motion.div>
         </div>
 
-        {/* Top fade gradient - only covers content area, not close button or paper edge */}
+        {/* Top fade gradient */}
         <div
           className="absolute top-0 right-0 pointer-events-none"
           style={{
@@ -102,7 +126,7 @@ export default function ArticlesPanel({
           }}
         />
 
-        {/* Bottom fade gradient - only covers content area, not paper edge */}
+        {/* Bottom fade gradient */}
         <div
           className="absolute bottom-0 right-0 pointer-events-none"
           style={{
