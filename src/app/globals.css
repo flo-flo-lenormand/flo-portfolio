@@ -29,6 +29,13 @@ h1, h2, h3 {
   background-color: #e4e4e7;
 }
 
+/* ── Hand-drawn circle animation ───────────────────── */
+@keyframes draw-circle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 /* ── Article prose ─────────────────────────────────── */
 .prose p {
   font-size: 16px;
