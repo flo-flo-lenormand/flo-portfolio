@@ -21,7 +21,7 @@ export default function SmartWord() {
     el.style.opacity = "1";
     animRef.current = el.animate(
       [
-        { transform: "translateX(-180%)" },
+        { transform: "translateX(-80%)" },
         { transform: "translateX(100%)" },
       ],
       {
