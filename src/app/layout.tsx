@@ -33,19 +33,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geist.variable} ${caveat.variable} h-full`}>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.addEventListener('pageshow', function(e) {
-                if (e.persisted) {
-                  window.location.reload();
-                }
-              });
-            `,
-          }}
-        />
-      </head>
       <body className="h-full bg-white text-black font-sans">
         {children}
       </body>

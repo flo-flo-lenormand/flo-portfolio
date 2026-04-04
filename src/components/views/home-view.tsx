@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import SafeWord from "@/components/magic-words/safe-word";
 import ExpressiveWord from "@/components/magic-words/expressive-word";
@@ -32,6 +32,14 @@ const BACKGROUND_PRELOAD = [
   "/close-article.png",
   "/backarrow.png",
 ];
+
+// Preload video so it's ready on hover
+function preloadVideo(src: string) {
+  const video = document.createElement("video");
+  video.preload = "auto";
+  video.src = src;
+  video.load();
+}
 
 function preloadImages(srcs: string[]): Promise<void[]> {
   return Promise.all(
@@ -115,6 +123,55 @@ function LogoWithLabel({
   );
 }
 
+function FlatDays() {
+  const [hovered, setHovered] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (hovered && videoRef.current) {
+      videoRef.current.play();
+    } else if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [hovered]);
+
+  return (
+    <span
+      className="relative inline cursor-default overflow-visible"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      flat days
+      {hovered && (
+        <span
+          className="absolute z-50 overflow-visible"
+          style={{
+            top: "calc(100% + 16px)",
+            left: 0,
+            width: 300,
+            minWidth: 300,
+          }}
+        >
+          <video
+            ref={videoRef}
+            src="/flatday.mp4"
+            muted
+            loop
+            playsInline
+            style={{
+              width: 300,
+              minWidth: 300,
+              height: "auto",
+              borderRadius: 8,
+            }}
+          />
+        </span>
+      )}
+    </span>
+  );
+}
+
 const staggerVariants = {
   hidden: {},
   visible: {
@@ -140,8 +197,9 @@ export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }
   useEffect(() => {
     preloadImages(PRELOAD_IMAGES).then(() => {
       setReady(true);
-      // Preload heavy panel assets in background after home is visible
+      // Preload heavy panel assets and video in background after home is visible
       preloadImages(BACKGROUND_PRELOAD);
+      preloadVideo("/flatday.mp4");
     });
   }, []);
 
@@ -182,7 +240,7 @@ export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }
             labelWidth={108}
             labelOffset={{ top: -86, left: -40 }}
           />{" "}
-          Now I&apos;m making them{" "}
+          {" "}Now I&apos;m making them{" "}
           <SmartWord /> designing AI agents at{" "}
           <LogoWithLabel
             logoSrc="/metaai.png"
@@ -239,7 +297,7 @@ export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }
               style={{ height: 28, display: "inline-block", verticalAlign: "baseline", position: "relative", top: 5 }}
             />
           </span>{" "}
-          about design on flat days
+          about design on <FlatDays />
         </motion.p>
       </motion.div>
     </div>
