@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geist.variable} ${caveat.variable} h-full`}>
-      <body className="h-full bg-white text-black font-sans">
+      <body className="h-full bg-white text-black font-sans antialiased" style={{ textWrap: "pretty" } as React.CSSProperties}>
         {children}
       </body>
     </html>
