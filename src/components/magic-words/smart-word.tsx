@@ -67,7 +67,6 @@ export default function SmartWord() {
     >
       {/* Base text */}
       <span style={{ color: "inherit" }}>smart</span>
-      <span style={{ color: "inherit", fontWeight: 600 }}>,</span>
 
       {/* Shimmer sweep overlay */}
       <span

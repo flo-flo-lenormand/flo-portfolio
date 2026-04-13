@@ -1,45 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import SafeWord from "@/components/magic-words/safe-word";
 import ExpressiveWord from "@/components/magic-words/expressive-word";
 import SmartWord from "@/components/magic-words/smart-word";
-
-interface HomeViewProps {
-  onMumClick: () => void;
-  onWriteClick: () => void;
-  onBackgroundClick: () => void;
-}
 
 // All images that need to load before revealing content
 const PRELOAD_IMAGES = [
   "/ig.png",
   "/messenger.png",
   "/metaai.png",
-  "/stabilo.png",
-  "/i-write.png",
   "/instagram-written.png",
   "/messenger-written.png",
   "/msl-written.png",
 ];
-
-// Heavy assets preloaded in background after home is visible
-const BACKGROUND_PRELOAD = [
-  "/background-panel-mum.png",
-  "/background-panel-article.png",
-  "/close-mum.png",
-  "/close-article.png",
-  "/backarrow.png",
-];
-
-// Preload video so it's ready on hover
-function preloadVideo(src: string) {
-  const video = document.createElement("video");
-  video.preload = "auto";
-  video.src = src;
-  video.load();
-}
 
 function preloadImages(srcs: string[]): Promise<void[]> {
   return Promise.all(
@@ -48,7 +23,7 @@ function preloadImages(srcs: string[]): Promise<void[]> {
         new Promise<void>((resolve) => {
           const img = new Image();
           img.onload = () => resolve();
-          img.onerror = () => resolve(); // don't block on errors
+          img.onerror = () => resolve();
           img.src = src;
         })
     )
@@ -76,14 +51,13 @@ function LogoWithLabel({
 }) {
   const [hovered, setHovered] = useState(false);
 
-  return (
+  const inner = (
     <span
       className="relative inline-block cursor-default overflow-visible"
       style={{ width: logoSize, height: logoSize, verticalAlign: "middle", position: "relative", top: logoTop }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Extended hit area to 40x40 */}
       <span
         className="absolute"
         style={{
@@ -101,7 +75,6 @@ function LogoWithLabel({
         className="inline-block"
         style={{ verticalAlign: "middle" }}
       />
-      {/* Handwritten label on hover */}
       <img
         src={labelSrc}
         alt={labelAlt}
@@ -121,185 +94,80 @@ function LogoWithLabel({
       />
     </span>
   );
+
+  return inner;
 }
 
-function FlatDays() {
-  const [hovered, setHovered] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (hovered && videoRef.current) {
-      videoRef.current.play();
-    } else if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, [hovered]);
-
-  return (
-    <span
-      className="relative inline cursor-default overflow-visible"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      flat days
-      {hovered && (
-        <span
-          className="absolute z-50 overflow-visible"
-          style={{
-            top: "calc(100% + 16px)",
-            left: 0,
-            width: 300,
-            minWidth: 300,
-          }}
-        >
-          <video
-            ref={videoRef}
-            src="/flatday.mp4"
-            muted
-            loop
-            playsInline
-            style={{
-              width: 300,
-              minWidth: 300,
-              height: "auto",
-              borderRadius: 8,
-            }}
-          />
-        </span>
-      )}
-    </span>
-  );
-}
-
-const staggerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.4 },
-  },
-};
+// Re-export LogoWithLabel for use in story-view
+export { LogoWithLabel };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 8, filter: "blur(4px)" },
-  visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+  hidden: { opacity: 0, filter: "blur(4px)" },
+  visible: { opacity: 1, filter: "blur(0px)" },
 };
 
 const itemTransition = {
-  y: { type: "spring" as const, duration: 0.4, bounce: 0 },
   filter: { type: "spring" as const, duration: 0.4, bounce: 0 },
   opacity: { duration: 0.7, ease: [0.25, 0, 0, 1] as [number, number, number, number] },
 };
 
-export default function HomeView({ onMumClick, onWriteClick, onBackgroundClick }: HomeViewProps) {
+export default function HomeView() {
   const [ready, setReady] = useState(false);
 
-  // Preload home images before showing content, then panel assets in background
   useEffect(() => {
     preloadImages(PRELOAD_IMAGES).then(() => {
       setReady(true);
-      // Preload heavy panel assets and video in background after home is visible
-      preloadImages(BACKGROUND_PRELOAD);
-      preloadVideo("/flatday.mp4");
     });
   }, []);
 
-  if (!ready) return <div className="min-h-screen" />;
+  if (!ready) return null;
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-6" onClick={onBackgroundClick}>
-      <motion.div
-        className="flex flex-col gap-[28px]"
-        style={{ width: 460 }}
-        initial="hidden"
-        animate="visible"
-        variants={staggerVariants}
-      >
-        <motion.p
-          className="text-[22px] font-medium leading-normal text-black"
-          variants={itemVariants}
-          transition={itemTransition}
-        >
-          I made conversations <SafeWord /> on{" "}
-          <LogoWithLabel
-            logoSrc="/ig.png"
-            labelSrc="/instagram-written.png"
-            logoAlt="Instagram"
-            labelAlt="Instagram"
-            logoSize={24}
-            labelWidth={108}
-            labelOffset={{ top: -48, left: 7 }}
-          />
-          <br />
-          Then <ExpressiveWord /> on{" "}
-          <LogoWithLabel
-            logoSrc="/messenger.png"
-            labelSrc="/messenger-written.png"
-            logoAlt="Messenger"
-            labelAlt="Messenger"
-            logoSize={24}
-            labelWidth={108}
-            labelOffset={{ top: -86, left: -40 }}
-          />{" "}
-          {" "}Now I&apos;m making them{" "}
-          <SmartWord /> designing AI agents at{" "}
-          <LogoWithLabel
-            logoSrc="/metaai.png"
-            labelSrc="/msl-written.png"
-            logoAlt="Meta Superintelligence Labs"
-            labelAlt="MSL (Meta Superintelligence Labs)"
-            logoSize={28}
-            logoTop={-6}
-            labelWidth={202}
-            labelOffset={{ top: 2, left: 32 }}
-          />
-        </motion.p>
+    <motion.p
+      className="text-[22px] font-medium leading-normal text-black"
+      style={{ width: 460 }}
+      variants={itemVariants}
+      initial="hidden"
+      animate="visible"
+      transition={itemTransition}
+    >
+      I made conversations <SafeWord /> on{" "}
+      <LogoWithLabel
+        logoSrc="/ig.png"
+        labelSrc="/instagram-written.png"
+        logoAlt="Instagram"
+        labelAlt="Instagram"
+        logoSize={24}
+        labelWidth={108}
+        labelOffset={{ top: -48, left: 7 }}
 
-        <motion.p
-          className="text-[22px] font-medium leading-normal text-black"
-          variants={itemVariants}
-          transition={itemTransition}
-        >
-          <span
-            onClick={(e) => { e.stopPropagation(); onMumClick(); }}
-            className="cursor-pointer relative inline-block overflow-visible"
-          >
-            {/* Stabilo highlight behind text */}
-            <img
-              src="/stabilo.png"
-              alt=""
-              className="pointer-events-none"
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                transform: "translate(calc(-50% - 2px), -50%) scale(1.2)",
-                width: "calc(100% + 16px)",
-                height: "auto",
-              }}
-            />
-            <span className="relative">My mum</span>
-          </span>{" "}
-          says I design message bubbles and honestly she&apos;s not wrong
-        </motion.p>
+      />
+      <br />
+      Then <ExpressiveWord /> on{" "}
+      <LogoWithLabel
+        logoSrc="/messenger.png"
+        labelSrc="/messenger-written.png"
+        logoAlt="Messenger"
+        labelAlt="Messenger"
+        logoSize={24}
+        labelWidth={108}
+        labelOffset={{ top: -86, left: -40 }}
 
-        <motion.p
-          className="text-[22px] font-medium leading-normal text-black"
-          variants={itemVariants}
-          transition={itemTransition}
-        >
-          <span
-            onClick={(e) => { e.stopPropagation(); onWriteClick(); }}
-            className="cursor-pointer inline-block"
-          >
-            <img
-              src="/i-write.png"
-              alt="I write"
-              style={{ height: 28, display: "inline-block", verticalAlign: "baseline", position: "relative", top: 5 }}
-            />
-          </span>{" "}
-          about design on <FlatDays />
-        </motion.p>
-      </motion.div>
-    </div>
+      />
+      <br />
+      Now I&apos;m making them{" "}
+      <SmartWord /> on{" "}
+      <LogoWithLabel
+        logoSrc="/metaai.png"
+        labelSrc="/msl-written.png"
+        logoAlt="Meta Superintelligence Labs"
+        labelAlt="MSL (Meta Superintelligence Labs)"
+        logoSize={28}
+        logoTop={-6}
+        labelWidth={202}
+        labelOffset={{ top: 2, left: 32 }}
+
+      />
+    </motion.p>
   );
 }
