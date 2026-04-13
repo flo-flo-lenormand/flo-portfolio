@@ -142,7 +142,7 @@ export default function StoryView() {
             labelAlt="Messenger"
             logoSize={24}
             labelWidth={108}
-            labelOffset={{ top: -86, left: -40 }}
+            labelOffset={{ top: -2, left: 30 }}
           />
           {" "}I owned the media experience<br />I redesigned the{" "}
           <VideoHover label="media picker" src="/mediapicker3.mp4" position="right" />
@@ -167,7 +167,7 @@ export default function StoryView() {
             logoSize={28}
             logoTop={-6}
             labelWidth={202}
-            labelOffset={{ top: 2, left: 32 }}
+            labelOffset={{ top: 36, left: -6 }}
           />
           {" "}I&apos;m designing AI agents
         </span>

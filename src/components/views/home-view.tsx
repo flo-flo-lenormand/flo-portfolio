@@ -151,7 +151,7 @@ export default function HomeView() {
         labelAlt="Messenger"
         logoSize={24}
         labelWidth={108}
-        labelOffset={{ top: -86, left: -40 }}
+        labelOffset={{ top: -2, left: 30 }}
 
       />
       <br />
@@ -165,7 +165,7 @@ export default function HomeView() {
         logoSize={28}
         logoTop={-6}
         labelWidth={202}
-        labelOffset={{ top: 2, left: 32 }}
+        labelOffset={{ top: 36, left: -6 }}
 
       />
     </motion.p>
