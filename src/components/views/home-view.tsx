@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
+import { motion } from "motion/react";
 import { createPortal } from "react-dom";
 import Matter from "matter-js";
 import SafeWord from "@/components/magic-words/safe-word";
@@ -49,6 +49,7 @@ function LogoWithLabel({
   onClick,
   expanded,
   logoRef,
+  interactive,
 }: {
   logoSrc: string;
   labelSrc: string;
@@ -61,14 +62,24 @@ function LogoWithLabel({
   onClick?: () => void;
   expanded?: boolean;
   logoRef?: React.RefObject<HTMLSpanElement | null>;
+  interactive?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
+  const clickable = !!(onClick || interactive);
 
   return (
     <span
       ref={logoRef}
-      className={`relative inline-block overflow-visible ${onClick ? "cursor-pointer" : "cursor-default"}`}
-      style={{ width: logoSize, height: logoSize, verticalAlign: "middle", position: "relative", top: logoTop }}
+      className={`relative inline-block overflow-visible ${clickable ? "cursor-pointer" : "cursor-default"}`}
+      style={{
+        width: logoSize,
+        height: logoSize,
+        verticalAlign: "middle",
+        position: "relative",
+        top: logoTop,
+        touchAction: interactive ? "none" : undefined,
+        zIndex: interactive ? 60 : undefined,
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onClick}
@@ -88,7 +99,8 @@ function LogoWithLabel({
         width={logoSize}
         height={logoSize}
         className="inline-block"
-        style={{ verticalAlign: "middle" }}
+        style={{ verticalAlign: "middle", pointerEvents: "none", userSelect: "none" }}
+        draggable={false}
       />
       <img
         src={labelSrc}
@@ -114,7 +126,7 @@ function LogoWithLabel({
 export { LogoWithLabel };
 
 // ---------------------------------------------------------------------------
-// Media data
+// Media data — the pool the logo spits out
 // ---------------------------------------------------------------------------
 type MediaItem = { src: string; id: string; type: "video" | "image" };
 
@@ -135,15 +147,6 @@ const MESSENGER_MEDIA: MediaItem[] = [
   { src: "/messenger-screens/image 405.png", id: "img405", type: "image" },
 ];
 
-// Varied widths for visual hierarchy (compact by default, scaled to viewport below)
-const ITEM_WIDTHS = MESSENGER_MEDIA.map((_, i) => {
-  const seed = (i * 11 + 3) % 19;
-  return 150 + (seed / 19) * 90; // 150–240px
-});
-
-// Radius at which items finish emerging from the logo (scale reaches 1.0)
-const EMERGENCE_RADIUS = 140;
-
 // ---------------------------------------------------------------------------
 // MediaElement
 // ---------------------------------------------------------------------------
@@ -151,391 +154,387 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (item.type === "video" && ref.current) {
-      ref.current.play().catch(() => {});
+    const el = ref.current;
+    if (item.type === "video" && el) {
+      el.play().catch(() => {});
     }
     return () => {
-      if (ref.current) ref.current.pause();
+      if (el) el.pause();
     };
   }, [item.type]);
 
   if (item.type === "image") {
-    return <img src={item.src} alt="" className="rounded-lg pointer-events-none" draggable={false} style={{ width, height: "auto" }} />;
+    return (
+      <img
+        src={item.src}
+        alt=""
+        className="rounded-xl pointer-events-none select-none"
+        draggable={false}
+        style={{ width, height: "auto", display: "block" }}
+      />
+    );
   }
 
   return (
-    <video ref={ref} src={item.src} muted loop playsInline className="rounded-lg pointer-events-none" style={{ width, height: "auto" }} />
+    <video
+      ref={ref}
+      src={item.src}
+      muted
+      loop
+      playsInline
+      className="rounded-xl pointer-events-none select-none"
+      style={{ width, height: "auto", display: "block" }}
+    />
   );
 }
 
 // ---------------------------------------------------------------------------
-// VideoBurst - explode from icon, physics, drag, suck back on close
+// MessengerFountain
+// Long-lived physics sandbox. Each spawnOne() call spits one random screen
+// out of the logo with a fresh trajectory.
 // ---------------------------------------------------------------------------
-type BurstPhase = "closed" | "exploding" | "open" | "imploding";
+const MAX_ITEMS = 60; // cap so long-press doesn't explode forever
+const MIN_WIDTH = 140;
+const MAX_WIDTH = 260;
 
-function VideoBurst({
-  open,
-  onClose,
-  originX,
-  originY,
-}: {
-  open: boolean;
-  onClose: () => void;
-  originX: number;
-  originY: number;
-}) {
-  const [positions, setPositions] = useState<{ x: number; y: number; angle: number; scale: number }[]>(
-    () => MESSENGER_MEDIA.map(() => ({ x: 0, y: 0, angle: 0, scale: 0 }))
-  );
-  const [phase, setPhase] = useState<BurstPhase>("closed");
-  const engineRef = useRef<Matter.Engine | null>(null);
-  const bodiesRef = useRef<Matter.Body[]>([]);
-  const rafRef = useRef<number>(0);
-  const dragRef = useRef<{
-    body: Matter.Body;
-    offset: { x: number; y: number };
-    lastMouse: { x: number; y: number };
-    velocity: { x: number; y: number };
-  } | null>(null);
-  const isDraggingRef = useRef(false);
-  const hoveredRef = useRef<number | null>(null);
-  // Once an item has fully emerged, lock its scale so wall-bounces near the origin
-  // don't make it shrink mid-flight.
-  const emergedRef = useRef<boolean[]>([]);
+type SpawnedItem = {
+  key: number;
+  mediaIndex: number;
+  width: number;
+  body: Matter.Body;
+  bornAt: number;
+  dragOverride?: { angle: number } | null;
+};
 
-  // ---- Drag handlers ----
-  const startDrag = useCallback((clientX: number, clientY: number, bodyIndex: number) => {
-    const body = bodiesRef.current[bodyIndex];
-    if (!body) return;
+export type MessengerFountainHandle = {
+  spawnOne: () => void;
+  clearAll: () => void;
+  count: () => number;
+};
 
-    isDraggingRef.current = true;
-    Matter.Body.setStatic(body, true);
-    Matter.Body.setAngularVelocity(body, 0);
-    Matter.Body.setVelocity(body, { x: 0, y: 0 });
+const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () => { x: number; y: number } }>(
+  function MessengerFountain({ getOrigin }, ref) {
+    // Frame-synced positions for every live item
+    type Frame = { x: number; y: number; angle: number; scale: number; vy: number; vx: number; opacity: number };
+    const [frames, setFrames] = useState<Record<number, Frame>>({});
+    const itemsRef = useRef<SpawnedItem[]>([]);
+    const keyRef = useRef(0);
+    const spawnCountRef = useRef(0);
+    const engineRef = useRef<Matter.Engine | null>(null);
+    const wallsRef = useRef<Matter.Body[]>([]);
+    const rafRef = useRef(0);
+    const draggingRef = useRef<Set<number>>(new Set());
+    const implodingRef = useRef(false);
 
-    const offsetX = clientX - body.position.x;
-    const offsetY = clientY - body.position.y;
-    let lastX = clientX;
-    let lastY = clientY;
-    let velX = 0;
-    let velY = 0;
+    // ---- Engine + walls setup (one-time) ----
+    useEffect(() => {
+      if (typeof window === "undefined") return;
 
-    function onMove(ev: MouseEvent) {
-      velX = ev.clientX - lastX;
-      velY = ev.clientY - lastY;
-      lastX = ev.clientX;
-      lastY = ev.clientY;
-      Matter.Body.setPosition(body, {
-        x: ev.clientX - offsetX,
-        y: ev.clientY - offsetY,
+      const engine = Matter.Engine.create({
+        gravity: { x: 0, y: 1, scale: 0.0011 },
+        positionIterations: 8,
+        velocityIterations: 8,
       });
-      Matter.Body.setAngle(body, body.angle * 0.95);
-    }
+      engineRef.current = engine;
 
-    function onUp() {
-      Matter.Body.setStatic(body, false);
-      // Gentle throw — cap speed so it never launches off-screen
-      const throwX = Math.max(-22, Math.min(22, velX * 1.4));
-      const throwY = Math.max(-22, Math.min(22, velY * 1.4));
-      Matter.Body.setVelocity(body, { x: throwX, y: throwY });
-      dragRef.current = null;
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      setTimeout(() => { isDraggingRef.current = false; }, 100);
-    }
+      const w = () => window.innerWidth;
+      const h = () => window.innerHeight;
 
-    dragRef.current = { body, offset: { x: offsetX, y: offsetY }, lastMouse: { x: lastX, y: lastY }, velocity: { x: 0, y: 0 } };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }, []);
-
-  // ---- OPEN: Explode from icon ----
-  useEffect(() => {
-    if (open && phase === "closed") {
-      // Initialize all positions at the icon
-      setPositions(MESSENGER_MEDIA.map(() => ({ x: originX, y: originY, angle: 0, scale: 0 })));
-      setPhase("exploding");
-    }
-  }, [open, phase, originX, originY]);
-
-  useEffect(() => {
-    if (phase !== "exploding") return;
-
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-
-    // Widest item caps how close walls can sit to the viewport edge
-    const maxItemW = Math.max(...ITEM_WIDTHS);
-    const maxItemH = maxItemW * 1.8;
-    const padX = 24 + maxItemW / 2;
-    const padY = 24 + maxItemH / 2;
-
-    // Zero gravity: items float, feel weightless and deliberate
-    const engine = Matter.Engine.create({ gravity: { x: 0, y: 0 } });
-    engineRef.current = engine;
-
-    // Padding-aware walls so no item ever clips the viewport edge
-    const wallOpts = { isStatic: true, restitution: 0.4 };
-    const floor = Matter.Bodies.rectangle(w / 2, h - padY + 25, w * 2, 50, wallOpts);
-    const ceiling = Matter.Bodies.rectangle(w / 2, padY - 25, w * 2, 50, wallOpts);
-    const wallL = Matter.Bodies.rectangle(padX - 25, h / 2, 50, h * 2, wallOpts);
-    const wallR = Matter.Bodies.rectangle(w - padX + 25, h / 2, 50, h * 2, wallOpts);
-    Matter.Composite.add(engine.world, [floor, ceiling, wallL, wallR]);
-
-    // Spawn bodies one by one from the icon, staggered
-    const bodies: (Matter.Body | null)[] = new Array(MESSENGER_MEDIA.length).fill(null);
-    const spawnTimes: number[] = new Array(MESSENGER_MEDIA.length).fill(0);
-    const spawnTimers: ReturnType<typeof setTimeout>[] = [];
-    bodiesRef.current = bodies as Matter.Body[];
-    emergedRef.current = new Array(MESSENGER_MEDIA.length).fill(false);
-
-    // Golden-angle radial distribution — organic, evenly spread, no clumping
-    const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-    const STAGGER_MS = 70;
-
-    MESSENGER_MEDIA.forEach((_, i) => {
-      const timer = setTimeout(() => {
-        const itemW = ITEM_WIDTHS[i];
-        const itemH = itemW * 1.8;
-        const seed = (i * 7 + 13) % 17;
-
-        const body = Matter.Bodies.rectangle(originX, originY, itemW, itemH, {
-          restitution: 0.4,
-          friction: 0.2,
-          frictionAir: 0.035, // high drag — settles naturally, feels premium
-          angle: ((seed - 8) / 8) * 0.12,
-          chamfer: { radius: 12 },
-          // Negative group = these bodies pass through each other but collide with walls (group 0)
-          collisionFilter: { group: -1 },
-        });
-
-        // Radial burst in all directions, with a slight upward lift for character
-        const angle = i * GOLDEN_ANGLE - Math.PI / 2;
-        const speed = 9 + (seed / 17) * 3; // 9–12 px/frame, gentle
-        Matter.Body.setVelocity(body, {
-          x: Math.cos(angle) * speed,
-          y: Math.sin(angle) * speed - 1.2,
-        });
-        Matter.Body.setAngularVelocity(body, ((seed - 8) / 17) * 0.025);
-
-        bodies[i] = body;
-        spawnTimes[i] = performance.now();
-        Matter.Composite.add(engine.world, body);
-      }, i * STAGGER_MS);
-
-      spawnTimers.push(timer);
-    });
-
-    // Animation loop
-    let lastTime = performance.now();
-
-    function step(time: number) {
-      const delta = Math.min(time - lastTime, 16.667);
-      lastTime = time;
-      if (delta > 0) Matter.Engine.update(engine, delta);
-
-      // Hover: gently settle the hovered item (straighten, dampen)
-      const hIdx = hoveredRef.current;
-      if (hIdx !== null && bodies[hIdx] && !dragRef.current) {
-        const b = bodies[hIdx]!;
-        if (!b.isStatic) {
-          Matter.Body.setVelocity(b, { x: b.velocity.x * 0.85, y: b.velocity.y * 0.85 });
-          Matter.Body.setAngle(b, b.angle * 0.88);
-          Matter.Body.setAngularVelocity(b, b.angularVelocity * 0.85);
+      const buildWalls = () => {
+        if (wallsRef.current.length) {
+          Matter.Composite.remove(engine.world, wallsRef.current);
         }
-      }
+        const W = w();
+        const H = h();
+        const t = 80;
+        const opts = { isStatic: true, restitution: 0.35, friction: 0.9 };
+        const floor = Matter.Bodies.rectangle(W / 2, H + t / 2 - 8, W * 2, t, opts);
+        const ceiling = Matter.Bodies.rectangle(W / 2, -H, W * 2, t, opts); // far above — lets items arc high without bonking
+        const wallL = Matter.Bodies.rectangle(-t / 2 + 8, H / 2, t, H * 4, opts);
+        const wallR = Matter.Bodies.rectangle(W + t / 2 - 8, H / 2, t, H * 4, opts);
+        wallsRef.current = [floor, ceiling, wallL, wallR];
+        Matter.Composite.add(engine.world, wallsRef.current);
+      };
+      buildWalls();
+      window.addEventListener("resize", buildWalls);
 
-      setPositions(
-        MESSENGER_MEDIA.map((_, idx) => {
-          const b = bodies[idx];
-          if (!b || !spawnTimes[idx]) {
-            return { x: originX, y: originY, angle: 0, scale: 0 };
+      let last = performance.now();
+      const tick = (now: number) => {
+        const dt = Math.min(now - last, 32);
+        last = now;
+        if (itemsRef.current.length > 0) {
+          Matter.Engine.update(engine, dt);
+
+          const next: Record<number, Frame> = {};
+          const origin = getOrigin();
+          for (const it of itemsRef.current) {
+            const b = it.body;
+            // Emerge scale — items literally grow out of the logo during the first ~140px
+            const dx = b.position.x - origin.x;
+            const dy = b.position.y - origin.y;
+            const emergeDist = Math.sqrt(dx * dx + dy * dy);
+            const timeAge = now - it.bornAt;
+            const emergeT = Math.min(1, timeAge / 180);
+            const emergeD = Math.min(1, emergeDist / 120);
+            const emergeScale = Math.min(emergeT, emergeD);
+
+            // Implode scale — when clearAll triggered, items get sucked back in
+            let scale = emergeScale;
+            let opacity = Math.min(1, emergeScale * 1.4);
+            if (implodingRef.current) {
+              scale = Math.max(0, Math.min(scale, emergeDist / 120));
+              opacity = scale;
+            }
+
+            next[it.key] = {
+              x: b.position.x,
+              y: b.position.y,
+              angle: b.angle,
+              scale,
+              vx: b.velocity.x,
+              vy: b.velocity.y,
+              opacity,
+            };
           }
-          // Scale driven by distance from origin — items literally grow from the logo.
-          let scale: number;
-          if (emergedRef.current[idx]) {
-            scale = 1;
-          } else {
-            const dx = b.position.x - originX;
-            const dy = b.position.y - originY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const distScale = Math.min(1, dist / EMERGENCE_RADIUS);
-            // Small time floor so newly spawned items aren't invisible frame-1
-            const age = time - spawnTimes[idx];
-            const timeScale = Math.min(1, age / 180);
-            scale = Math.min(distScale, timeScale);
-            if (scale >= 1) emergedRef.current[idx] = true;
+          setFrames(next);
+
+          // Implosion: apply strong pull toward origin
+          if (implodingRef.current) {
+            const origin2 = getOrigin();
+            for (const it of itemsRef.current) {
+              const b = it.body;
+              if (b.isStatic) continue;
+              const dx = origin2.x - b.position.x;
+              const dy = origin2.y - b.position.y;
+              const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+              Matter.Body.applyForce(b, b.position, {
+                x: (dx / dist) * 0.02 * b.mass,
+                y: (dy / dist) * 0.02 * b.mass,
+              });
+              Matter.Body.setVelocity(b, { x: b.velocity.x * 0.9, y: b.velocity.y * 0.9 });
+              Matter.Body.setAngularVelocity(b, b.angularVelocity * 0.9);
+              // Fully consumed — remove
+              if (dist < 28) {
+                Matter.Composite.remove(engine.world, b);
+              }
+            }
+            itemsRef.current = itemsRef.current.filter((it) => {
+              const dx = origin2.x - it.body.position.x;
+              const dy = origin2.y - it.body.position.y;
+              return Math.sqrt(dx * dx + dy * dy) >= 28;
+            });
+            if (itemsRef.current.length === 0) {
+              implodingRef.current = false;
+              setFrames({});
+            }
           }
-          return { x: b.position.x, y: b.position.y, angle: b.angle, scale };
-        })
-      );
+        } else if (Object.keys(frames).length > 0) {
+          setFrames({});
+        }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
 
-      rafRef.current = requestAnimationFrame(step);
-    }
-    rafRef.current = requestAnimationFrame(step);
-
-    const openTimer = setTimeout(() => {
-      setPhase("open");
-    }, MESSENGER_MEDIA.length * STAGGER_MS + 400);
-
-    return () => {
-      spawnTimers.forEach(clearTimeout);
-      clearTimeout(openTimer);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [phase, originX, originY]);
-
-  // ---- CLOSE: Implode back to icon ----
-  const startClose = useCallback(() => {
-    if (isDraggingRef.current || phase === "imploding" || phase === "closed") return;
-    setPhase("imploding");
-
-    const bodies = bodiesRef.current;
-    const engine = engineRef.current;
-    if (!engine || !bodies.length) {
-      setPhase("closed");
-
-      onClose();
-      return;
-    }
-
-    engine.gravity.y = 0;
-    engine.gravity.x = 0;
-
-    let frame = 0;
-    const totalFrames = 46;
-
-    function implodeStep() {
-      if (!engine) return;
-      frame++;
-      // easeInCubic — slow start, accelerates into the logo
-      const t = frame / totalFrames;
-      const progress = t * t * t;
-
-      bodies.forEach((b) => {
-        if (!b || b.isStatic) return;
-        const dx = originX - b.position.x;
-        const dy = originY - b.position.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-        // Accelerating pull toward the logo
-        const strength = 0.0018 + progress * 0.020;
-        Matter.Body.applyForce(b, b.position, {
-          x: (dx / dist) * strength * b.mass,
-          y: (dy / dist) * strength * b.mass,
-        });
-
-        // Damping climbs with progress so items funnel cleanly into the origin
-        const damp = 0.94 - progress * 0.22;
-        Matter.Body.setVelocity(b, { x: b.velocity.x * damp, y: b.velocity.y * damp });
-        Matter.Body.setAngularVelocity(b, b.angularVelocity * 0.88);
-      });
-
-      setPositions(
-        bodies.map((b) => {
-          if (!b) return { x: originX, y: originY, angle: 0, scale: 0 };
-          const dx = originX - b.position.x;
-          const dy = originY - b.position.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          // Mirror of entry: items shrink as they approach the logo
-          const scale = Math.max(0, Math.min(1, dist / EMERGENCE_RADIUS));
-          return { x: b.position.x, y: b.position.y, angle: b.angle, scale };
-        })
-      );
-
-      Matter.Engine.update(engine!, 16);
-
-      if (frame < totalFrames) {
-        rafRef.current = requestAnimationFrame(implodeStep);
-      } else {
-        // Cleanup
+      return () => {
         cancelAnimationFrame(rafRef.current);
+        window.removeEventListener("resize", buildWalls);
         Matter.Engine.clear(engine);
         engineRef.current = null;
-        bodiesRef.current = [];
-        setPositions([]);
-        setPhase("closed");
+        itemsRef.current = [];
+        wallsRef.current = [];
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-        onClose();
+    // ---- Spawn one item ----
+    const spawnOne = useCallback(() => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      if (implodingRef.current) {
+        // Cancel implode if user starts spawning again
+        implodingRef.current = false;
       }
-    }
 
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(implodeStep);
-  }, [phase, originX, originY, onClose]);
-
-  // Escape key
-  useEffect(() => {
-    if (phase === "closed") return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") startClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [phase, startClose]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      if (engineRef.current) {
-        Matter.Engine.clear(engineRef.current);
+      // Cull oldest if we've hit the cap
+      if (itemsRef.current.length >= MAX_ITEMS) {
+        const oldest = itemsRef.current.shift();
+        if (oldest) Matter.Composite.remove(engine.world, oldest.body);
       }
-    };
-  }, []);
 
-  if (phase === "closed" || typeof document === "undefined") return null;
+      const origin = getOrigin();
+      const n = spawnCountRef.current++;
 
-  const closing = phase === "imploding";
+      // Pick a random asset, varied size
+      const mediaIndex = Math.floor(Math.random() * MESSENGER_MEDIA.length);
+      const width = MIN_WIDTH + Math.random() * (MAX_WIDTH - MIN_WIDTH);
+      const height = width * 1.75;
 
-  return createPortal(
-    <>
-      {/* Soft backdrop — fades the page so prototypes feel intentional */}
-      <div
-        className="fixed inset-0 z-40"
-        onClick={() => { if (!isDraggingRef.current) startClose(); }}
-        style={{
-          backgroundColor: "rgba(255,255,255,0.55)",
-          backdropFilter: "blur(2px)",
-          WebkitBackdropFilter: "blur(2px)",
-          opacity: closing ? 0 : 1,
-          transition: "opacity 420ms cubic-bezier(0.2, 0, 0, 1)",
-        }}
-      />
+      // Trajectory: varied upward cone. Alternate sides; each click gets a fresh curve.
+      // Base angle walks around via golden ratio for visual variety.
+      const PHI = (1 + Math.sqrt(5)) / 2;
+      const baseAngle = ((n * (1 / PHI)) % 1) * Math.PI * 2;
+      // Restrict to an upward 220° arc (-20° to -200° in screen coords)
+      const theta = -Math.PI / 2 + Math.sin(baseAngle) * (Math.PI * 0.55);
+      const speed = 16 + Math.random() * 10; // 16–26 px/frame
+      const vx = Math.cos(theta) * speed + (Math.random() - 0.5) * 3;
+      const vy = Math.sin(theta) * speed - 2; // small extra lift
 
-      {/* Physics items */}
-      {MESSENGER_MEDIA.map((item, i) => {
-        const pos = positions[i];
-        if (!pos || pos.scale < 0.02) return null;
-        const w = ITEM_WIDTHS[i];
-        // Opacity matches scale for an ultra-clean emerge/recede
-        const opacity = Math.min(1, pos.scale * 1.15);
-        return (
-          <div
-            key={item.id}
-            className="fixed z-50 select-none"
-            style={{
-              left: pos.x,
-              top: pos.y,
-              transform: `translate(-50%, -50%) rotate(${pos.angle}rad) scale(${pos.scale})`,
-              transformOrigin: "center center",
-              cursor: "grab",
-              willChange: "transform, opacity",
-              opacity,
-              filter: "drop-shadow(0 12px 28px rgba(15, 20, 45, 0.14)) drop-shadow(0 2px 6px rgba(15, 20, 45, 0.08))",
-            }}
-            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); startDrag(e.clientX, e.clientY, i); }}
-            onMouseEnter={() => { hoveredRef.current = i; }}
-            onMouseLeave={() => { if (hoveredRef.current === i) hoveredRef.current = null; }}
-          >
-            <MediaElement item={item} width={w} />
-          </div>
-        );
-      })}
-    </>,
-    document.body
-  );
-}
+      const body = Matter.Bodies.rectangle(origin.x, origin.y, width, height, {
+        density: 0.0024,
+        friction: 0.32,
+        frictionAir: 0.012,
+        restitution: 0.36,
+        chamfer: { radius: 14 },
+        slop: 0.02,
+        angle: (Math.random() - 0.5) * 0.25,
+      });
+      Matter.Body.setVelocity(body, { x: vx, y: vy });
+      Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.32);
+
+      const item: SpawnedItem = {
+        key: keyRef.current++,
+        mediaIndex,
+        width,
+        body,
+        bornAt: performance.now(),
+      };
+      itemsRef.current.push(item);
+      Matter.Composite.add(engine.world, body);
+    }, [getOrigin]);
+
+    const clearAll = useCallback(() => {
+      if (itemsRef.current.length === 0) return;
+      implodingRef.current = true;
+    }, []);
+
+    const count = useCallback(() => itemsRef.current.length, []);
+
+    useImperativeHandle(ref, () => ({ spawnOne, clearAll, count }), [spawnOne, clearAll, count]);
+
+    // ---- Escape to clear ----
+    useEffect(() => {
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") clearAll();
+      };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, [clearAll]);
+
+    // ---- Drag handlers (pointer events for touch + mouse + pen) ----
+    const startDrag = useCallback((e: React.PointerEvent, key: number) => {
+      const item = itemsRef.current.find((it) => it.key === key);
+      if (!item) return;
+      const body = item.body;
+      e.stopPropagation();
+      e.preventDefault();
+
+      const target = e.currentTarget as HTMLElement;
+      try {
+        target.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+
+      Matter.Body.setStatic(body, true);
+      Matter.Body.setAngularVelocity(body, 0);
+      Matter.Body.setVelocity(body, { x: 0, y: 0 });
+      draggingRef.current.add(key);
+
+      const offsetX = e.clientX - body.position.x;
+      const offsetY = e.clientY - body.position.y;
+
+      // Rolling velocity buffer for a natural throw
+      type Sample = { x: number; y: number; t: number };
+      const history: Sample[] = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+
+      const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== e.pointerId) return;
+        Matter.Body.setPosition(body, {
+          x: ev.clientX - offsetX,
+          y: ev.clientY - offsetY,
+        });
+        // Relax angle toward zero as user drags — reads as "picking up"
+        Matter.Body.setAngle(body, body.angle * 0.92);
+        history.push({ x: ev.clientX, y: ev.clientY, t: performance.now() });
+        // Keep only last ~80ms
+        const cutoff = performance.now() - 90;
+        while (history.length > 2 && history[0].t < cutoff) history.shift();
+      };
+
+      const onUp = (ev: PointerEvent) => {
+        if (ev.pointerId !== e.pointerId) return;
+        target.removeEventListener("pointermove", onMove);
+        target.removeEventListener("pointerup", onUp);
+        target.removeEventListener("pointercancel", onUp);
+        try {
+          target.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+
+        // Average velocity over the sample window
+        const first = history[0];
+        const last = history[history.length - 1];
+        const dt = Math.max(16, last.t - first.t);
+        const vx = ((last.x - first.x) / dt) * 16; // px per frame at 60fps
+        const vy = ((last.y - first.y) / dt) * 16;
+
+        Matter.Body.setStatic(body, false);
+        Matter.Body.setVelocity(body, {
+          x: Math.max(-30, Math.min(30, vx)),
+          y: Math.max(-30, Math.min(30, vy)),
+        });
+        Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.08);
+        draggingRef.current.delete(key);
+      };
+
+      target.addEventListener("pointermove", onMove);
+      target.addEventListener("pointerup", onUp);
+      target.addEventListener("pointercancel", onUp);
+    }, []);
+
+    if (typeof document === "undefined") return null;
+    if (Object.keys(frames).length === 0 && !implodingRef.current) return null;
+
+    return createPortal(
+      <>
+        {itemsRef.current.map((it) => {
+          const f = frames[it.key];
+          if (!f || f.scale < 0.02) return null;
+          const media = MESSENGER_MEDIA[it.mediaIndex];
+          const isDragging = draggingRef.current.has(it.key);
+          // Shadow amplifies with downward velocity and lift
+          const vMag = Math.min(30, Math.abs(f.vy));
+          const shadowBlur = 18 + vMag * 0.9;
+          const shadowY = 10 + vMag * 0.35;
+          const shadowAlpha = 0.14 + Math.min(0.12, vMag * 0.004) + (isDragging ? 0.08 : 0);
+          return (
+            <div
+              key={it.key}
+              className="fixed z-50 select-none"
+              style={{
+                left: f.x,
+                top: f.y,
+                transform: `translate(-50%, -50%) rotate(${f.angle}rad) scale(${f.scale * (isDragging ? 1.04 : 1)})`,
+                transformOrigin: "center center",
+                cursor: isDragging ? "grabbing" : "grab",
+                willChange: "transform, opacity",
+                opacity: f.opacity,
+                filter: `drop-shadow(0 ${shadowY}px ${shadowBlur}px rgba(15, 20, 45, ${shadowAlpha})) drop-shadow(0 2px 6px rgba(15, 20, 45, 0.08))`,
+                touchAction: "none",
+                transition: isDragging ? "transform 120ms cubic-bezier(.2,.9,.3,1.2)" : undefined,
+              }}
+              onPointerDown={(e) => startDrag(e, it.key)}
+            >
+              <MediaElement item={media} width={it.width} />
+            </div>
+          );
+        })}
+      </>,
+      document.body
+    );
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Main view
@@ -552,32 +551,118 @@ const itemTransition = {
 
 export default function HomeView() {
   const [ready, setReady] = useState(false);
-  const [messengerBurst, setMessengerBurst] = useState(false);
-  const [textDim, setTextDim] = useState(false);
+  const [logoKick, setLogoKick] = useState(0); // increments on each spawn to retrigger kick animation
   const messengerRef = useRef<HTMLSpanElement>(null);
-  const iconPosRef = useRef({ x: 0, y: 0 });
-  const [iconPos, setIconPos] = useState({ x: 0, y: 0 });
+  const fountainRef = useRef<MessengerFountainHandle>(null);
 
   useEffect(() => {
     preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
   }, []);
 
-  const toggleMessengerBurst = useCallback(() => {
-    if (messengerRef.current) {
-      const rect = messengerRef.current.getBoundingClientRect();
-      iconPosRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-      setIconPos(iconPosRef.current);
-    }
-    setMessengerBurst((v) => {
-      setTextDim(!v);
-      return !v;
-    });
+  // Live origin — always reads the logo's current screen position
+  const getOrigin = useCallback(() => {
+    const el = messengerRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }, []);
 
-  const closeMessengerBurst = useCallback(() => {
-    setMessengerBurst(false);
-    setTextDim(false);
-  }, []);
+  // Click + long-press handling on the messenger logo
+  useEffect(() => {
+    if (!ready) return;
+    const el = messengerRef.current;
+    if (!el) return;
+
+    let pressTimer: ReturnType<typeof setTimeout> | null = null;
+    let streamInterval: ReturnType<typeof setInterval> | null = null;
+    let streamAccel: ReturnType<typeof setInterval> | null = null;
+    let streamDelay = 110; // ms between spawns during long press, speeds up over time
+    let isLongPressing = false;
+    let pointerDown = false;
+    let pressPointerId: number | null = null;
+
+    const kick = () => setLogoKick((k) => k + 1);
+
+    const startStream = () => {
+      isLongPressing = true;
+      // Immediate kick
+      fountainRef.current?.spawnOne();
+      kick();
+      const run = () => {
+        fountainRef.current?.spawnOne();
+        kick();
+      };
+      streamInterval = setInterval(run, streamDelay);
+      // Gentle ramp: interval shortens over ~2s from 110ms → 55ms
+      streamAccel = setInterval(() => {
+        if (streamDelay > 55) {
+          streamDelay -= 6;
+          if (streamInterval) clearInterval(streamInterval);
+          streamInterval = setInterval(run, streamDelay);
+        }
+      }, 220);
+    };
+
+    const stopStream = () => {
+      if (streamInterval) clearInterval(streamInterval);
+      if (streamAccel) clearInterval(streamAccel);
+      streamInterval = null;
+      streamAccel = null;
+      streamDelay = 110;
+    };
+
+    const onDown = (e: PointerEvent) => {
+      if (pointerDown) return;
+      pointerDown = true;
+      pressPointerId = e.pointerId;
+      isLongPressing = false;
+      e.preventDefault();
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        startStream();
+      }, 240);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (!pointerDown) return;
+      if (pressPointerId !== null && e.pointerId !== pressPointerId) return;
+      pointerDown = false;
+      pressPointerId = null;
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+      if (isLongPressing) {
+        stopStream();
+        isLongPressing = false;
+      } else {
+        // Plain click — one single spit
+        fountainRef.current?.spawnOne();
+        kick();
+      }
+    };
+
+    const onCancel = () => {
+      if (pressTimer) clearTimeout(pressTimer);
+      pressTimer = null;
+      stopStream();
+      isLongPressing = false;
+      pointerDown = false;
+      pressPointerId = null;
+    };
+
+    el.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      if (pressTimer) clearTimeout(pressTimer);
+      stopStream();
+    };
+  }, [ready]);
 
   if (!ready) return null;
 
@@ -591,61 +676,51 @@ export default function HomeView() {
         animate="visible"
         transition={itemTransition}
       >
-        <motion.span
-          animate={{ opacity: textDim ? 0.15 : 1 }}
-          transition={{ duration: 0.4, ease: [0.25, 0, 0, 1] }}
-        >
-          I made conversations <SafeWord /> on{" "}
-          <LogoWithLabel
-            logoSrc="/ig.png"
-            labelSrc="/instagram-written.png"
-            logoAlt="Instagram"
-            labelAlt="Instagram"
-            logoSize={24}
-            labelWidth={108}
-            labelOffset={{ top: -48, left: 7 }}
-          />
-          <br />
-          Then <ExpressiveWord /> on{" "}
-        </motion.span>
+        I made conversations <SafeWord /> on{" "}
         <LogoWithLabel
-          logoSrc="/messenger.png"
-          labelSrc="/messenger-written.png"
-          logoAlt="Messenger"
-          labelAlt="Messenger"
+          logoSrc="/ig.png"
+          labelSrc="/instagram-written.png"
+          logoAlt="Instagram"
+          labelAlt="Instagram"
           logoSize={24}
           labelWidth={108}
-          labelOffset={{ top: -2, left: 30 }}
-          onClick={toggleMessengerBurst}
-          expanded={messengerBurst}
-          logoRef={messengerRef}
+          labelOffset={{ top: -48, left: 7 }}
         />
+        <br />
+        Then <ExpressiveWord /> on{" "}
         <motion.span
-          animate={{ opacity: textDim ? 0.15 : 1 }}
-          transition={{ duration: 0.4, ease: [0.25, 0, 0, 1] }}
+          style={{ display: "inline-block", verticalAlign: "middle" }}
+          animate={{ scale: [1, 1.18, 1] }}
+          transition={{ duration: 0.32, ease: [0.2, 0.9, 0.3, 1.2] }}
+          key={logoKick}
         >
-          <br />
-          Now I&apos;m making them{" "}
-          <SmartWord /> on{" "}
           <LogoWithLabel
-            logoSrc="/metaai.png"
-            labelSrc="/msl-written.png"
-            logoAlt="Meta Superintelligence Labs"
-            labelAlt="MSL (Meta Superintelligence Labs)"
-            logoSize={28}
-            logoTop={-6}
-            labelWidth={202}
-            labelOffset={{ top: 36, left: -6 }}
+            logoSrc="/messenger.png"
+            labelSrc="/messenger-written.png"
+            logoAlt="Messenger"
+            labelAlt="Messenger"
+            logoSize={24}
+            labelWidth={108}
+            labelOffset={{ top: -2, left: 30 }}
+            logoRef={messengerRef}
+            interactive
           />
         </motion.span>
+        <br />
+        Now I&apos;m making them <SmartWord /> on{" "}
+        <LogoWithLabel
+          logoSrc="/metaai.png"
+          labelSrc="/msl-written.png"
+          logoAlt="Meta Superintelligence Labs"
+          labelAlt="MSL (Meta Superintelligence Labs)"
+          logoSize={28}
+          logoTop={-6}
+          labelWidth={202}
+          labelOffset={{ top: 36, left: -6 }}
+        />
       </motion.p>
 
-      <VideoBurst
-        open={messengerBurst}
-        onClose={closeMessengerBurst}
-        originX={iconPos.x}
-        originY={iconPos.y}
-      />
+      <MessengerFountain ref={fountainRef} getOrigin={getOrigin} />
     </>
   );
 }
