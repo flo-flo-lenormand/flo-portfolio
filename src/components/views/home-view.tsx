@@ -135,11 +135,14 @@ const MESSENGER_MEDIA: MediaItem[] = [
   { src: "/messenger-screens/image 405.png", id: "img405", type: "image" },
 ];
 
-// Varied widths for visual hierarchy
+// Varied widths for visual hierarchy (compact by default, scaled to viewport below)
 const ITEM_WIDTHS = MESSENGER_MEDIA.map((_, i) => {
   const seed = (i * 11 + 3) % 19;
-  return 180 + (seed / 19) * 120;
+  return 150 + (seed / 19) * 90; // 150–240px
 });
+
+// Radius at which items finish emerging from the logo (scale reaches 1.0)
+const EMERGENCE_RADIUS = 140;
 
 // ---------------------------------------------------------------------------
 // MediaElement
@@ -196,6 +199,9 @@ function VideoBurst({
   } | null>(null);
   const isDraggingRef = useRef(false);
   const hoveredRef = useRef<number | null>(null);
+  // Once an item has fully emerged, lock its scale so wall-bounces near the origin
+  // don't make it shrink mid-flight.
+  const emergedRef = useRef<boolean[]>([]);
 
   // ---- Drag handlers ----
   const startDrag = useCallback((clientX: number, clientY: number, bodyIndex: number) => {
@@ -228,7 +234,10 @@ function VideoBurst({
 
     function onUp() {
       Matter.Body.setStatic(body, false);
-      Matter.Body.setVelocity(body, { x: velX * 3, y: velY * 3 });
+      // Gentle throw — cap speed so it never launches off-screen
+      const throwX = Math.max(-22, Math.min(22, velX * 1.4));
+      const throwY = Math.max(-22, Math.min(22, velY * 1.4));
+      Matter.Body.setVelocity(body, { x: throwX, y: throwY });
       dragRef.current = null;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -252,25 +261,37 @@ function VideoBurst({
   useEffect(() => {
     if (phase !== "exploding") return;
 
-    console.log("BURST origin:", originX, originY);
-
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    const engine = Matter.Engine.create({ gravity: { x: 0, y: 1.2 } });
+    // Widest item caps how close walls can sit to the viewport edge
+    const maxItemW = Math.max(...ITEM_WIDTHS);
+    const maxItemH = maxItemW * 1.8;
+    const padX = 24 + maxItemW / 2;
+    const padY = 24 + maxItemH / 2;
+
+    // Zero gravity: items float, feel weightless and deliberate
+    const engine = Matter.Engine.create({ gravity: { x: 0, y: 0 } });
     engineRef.current = engine;
 
-    // Boundaries - full box: floor, ceiling, left wall, right wall
-    const floor = Matter.Bodies.rectangle(w / 2, h + 25, w * 2, 50, { isStatic: true, restitution: 0.3 });
-    const ceiling = Matter.Bodies.rectangle(w / 2, -25, w * 2, 50, { isStatic: true, restitution: 0.3 });
-    const wallL = Matter.Bodies.rectangle(-25, h / 2, 50, h * 2, { isStatic: true, restitution: 0.5 });
-    const wallR = Matter.Bodies.rectangle(w + 25, h / 2, 50, h * 2, { isStatic: true, restitution: 0.5 });
+    // Padding-aware walls so no item ever clips the viewport edge
+    const wallOpts = { isStatic: true, restitution: 0.4 };
+    const floor = Matter.Bodies.rectangle(w / 2, h - padY + 25, w * 2, 50, wallOpts);
+    const ceiling = Matter.Bodies.rectangle(w / 2, padY - 25, w * 2, 50, wallOpts);
+    const wallL = Matter.Bodies.rectangle(padX - 25, h / 2, 50, h * 2, wallOpts);
+    const wallR = Matter.Bodies.rectangle(w - padX + 25, h / 2, 50, h * 2, wallOpts);
     Matter.Composite.add(engine.world, [floor, ceiling, wallL, wallR]);
 
     // Spawn bodies one by one from the icon, staggered
     const bodies: (Matter.Body | null)[] = new Array(MESSENGER_MEDIA.length).fill(null);
+    const spawnTimes: number[] = new Array(MESSENGER_MEDIA.length).fill(0);
     const spawnTimers: ReturnType<typeof setTimeout>[] = [];
     bodiesRef.current = bodies as Matter.Body[];
+    emergedRef.current = new Array(MESSENGER_MEDIA.length).fill(false);
+
+    // Golden-angle radial distribution — organic, evenly spread, no clumping
+    const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+    const STAGGER_MS = 70;
 
     MESSENGER_MEDIA.forEach((_, i) => {
       const timer = setTimeout(() => {
@@ -279,35 +300,31 @@ function VideoBurst({
         const seed = (i * 7 + 13) % 17;
 
         const body = Matter.Bodies.rectangle(originX, originY, itemW, itemH, {
-          restitution: 0.3,
-          friction: 0.4,
-          frictionAir: 0.008,
-          angle: ((seed - 8) / 8) * 0.1,
-          chamfer: { radius: 8 },
+          restitution: 0.4,
+          friction: 0.2,
+          frictionAir: 0.035, // high drag — settles naturally, feels premium
+          angle: ((seed - 8) / 8) * 0.12,
+          chamfer: { radius: 12 },
+          // Negative group = these bodies pass through each other but collide with walls (group 0)
+          collisionFilter: { group: -1 },
         });
 
-        // Eject upward and outward - like popping out of the logo
-        const spreadAngle = -Math.PI / 2 + ((i - MESSENGER_MEDIA.length / 2) / MESSENGER_MEDIA.length) * Math.PI * 0.8;
-        const speed = 18 + (seed / 17) * 12;
+        // Radial burst in all directions, with a slight upward lift for character
+        const angle = i * GOLDEN_ANGLE - Math.PI / 2;
+        const speed = 9 + (seed / 17) * 3; // 9–12 px/frame, gentle
         Matter.Body.setVelocity(body, {
-          x: Math.cos(spreadAngle) * speed,
-          y: Math.sin(spreadAngle) * speed - 4,
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed - 1.2,
         });
-        Matter.Body.setAngularVelocity(body, ((seed - 8) / 17) * 0.06);
+        Matter.Body.setAngularVelocity(body, ((seed - 8) / 17) * 0.025);
 
         bodies[i] = body;
+        spawnTimes[i] = performance.now();
         Matter.Composite.add(engine.world, body);
-      }, i * 120); // 120ms between each item
+      }, i * STAGGER_MS);
 
       spawnTimers.push(timer);
     });
-
-    // Track when each body was spawned for per-item scale animation
-    const spawnTimes: number[] = [];
-    const origSpawnInterval = setInterval(() => {
-      spawnTimes.push(performance.now());
-      if (spawnTimes.length >= MESSENGER_MEDIA.length) clearInterval(origSpawnInterval);
-    }, 120);
 
     // Animation loop
     let lastTime = performance.now();
@@ -317,26 +334,38 @@ function VideoBurst({
       lastTime = time;
       if (delta > 0) Matter.Engine.update(engine, delta);
 
-      // Hover: lift and straighten hovered item
+      // Hover: gently settle the hovered item (straighten, dampen)
       const hIdx = hoveredRef.current;
       if (hIdx !== null && bodies[hIdx] && !dragRef.current) {
         const b = bodies[hIdx]!;
         if (!b.isStatic) {
-          Matter.Body.setVelocity(b, { x: b.velocity.x * 0.8, y: Math.min(b.velocity.y, -1) });
-          Matter.Body.setAngle(b, b.angle * 0.85);
-          Matter.Body.setAngularVelocity(b, b.angularVelocity * 0.8);
+          Matter.Body.setVelocity(b, { x: b.velocity.x * 0.85, y: b.velocity.y * 0.85 });
+          Matter.Body.setAngle(b, b.angle * 0.88);
+          Matter.Body.setAngularVelocity(b, b.angularVelocity * 0.85);
         }
       }
 
       setPositions(
         MESSENGER_MEDIA.map((_, idx) => {
           const b = bodies[idx];
-          if (!b) {
+          if (!b || !spawnTimes[idx]) {
             return { x: originX, y: originY, angle: 0, scale: 0 };
           }
-          const spawnT = spawnTimes[idx] || time;
-          const age = time - spawnT;
-          const scale = Math.min(1, age / 300);
+          // Scale driven by distance from origin — items literally grow from the logo.
+          let scale: number;
+          if (emergedRef.current[idx]) {
+            scale = 1;
+          } else {
+            const dx = b.position.x - originX;
+            const dy = b.position.y - originY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const distScale = Math.min(1, dist / EMERGENCE_RADIUS);
+            // Small time floor so newly spawned items aren't invisible frame-1
+            const age = time - spawnTimes[idx];
+            const timeScale = Math.min(1, age / 180);
+            scale = Math.min(distScale, timeScale);
+            if (scale >= 1) emergedRef.current[idx] = true;
+          }
           return { x: b.position.x, y: b.position.y, angle: b.angle, scale };
         })
       );
@@ -347,11 +376,10 @@ function VideoBurst({
 
     const openTimer = setTimeout(() => {
       setPhase("open");
-    }, MESSENGER_MEDIA.length * 120 + 300);
+    }, MESSENGER_MEDIA.length * STAGGER_MS + 400);
 
     return () => {
       spawnTimers.forEach(clearTimeout);
-      clearInterval(origSpawnInterval);
       clearTimeout(openTimer);
       cancelAnimationFrame(rafRef.current);
     };
@@ -371,17 +399,18 @@ function VideoBurst({
       return;
     }
 
-    // Disable gravity, add attraction toward origin
     engine.gravity.y = 0;
     engine.gravity.x = 0;
 
     let frame = 0;
-    const totalFrames = 40;
+    const totalFrames = 46;
 
     function implodeStep() {
       if (!engine) return;
       frame++;
-      const progress = frame / totalFrames;
+      // easeInCubic — slow start, accelerates into the logo
+      const t = frame / totalFrames;
+      const progress = t * t * t;
 
       bodies.forEach((b) => {
         if (!b || b.isStatic) return;
@@ -389,26 +418,27 @@ function VideoBurst({
         const dy = originY - b.position.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-        const strength = 0.002 + progress * 0.015;
+        // Accelerating pull toward the logo
+        const strength = 0.0018 + progress * 0.020;
         Matter.Body.applyForce(b, b.position, {
           x: (dx / dist) * strength * b.mass,
           y: (dy / dist) * strength * b.mass,
         });
 
-        Matter.Body.setVelocity(b, {
-          x: b.velocity.x * (0.95 - progress * 0.15),
-          y: b.velocity.y * (0.95 - progress * 0.15),
-        });
-
-        Matter.Body.setAngularVelocity(b, b.angularVelocity * 0.9);
+        // Damping climbs with progress so items funnel cleanly into the origin
+        const damp = 0.94 - progress * 0.22;
+        Matter.Body.setVelocity(b, { x: b.velocity.x * damp, y: b.velocity.y * damp });
+        Matter.Body.setAngularVelocity(b, b.angularVelocity * 0.88);
       });
 
       setPositions(
         bodies.map((b) => {
+          if (!b) return { x: originX, y: originY, angle: 0, scale: 0 };
           const dx = originX - b.position.x;
           const dy = originY - b.position.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const scale = Math.max(0, Math.min(1, dist / 300));
+          // Mirror of entry: items shrink as they approach the logo
+          const scale = Math.max(0, Math.min(1, dist / EMERGENCE_RADIUS));
           return { x: b.position.x, y: b.position.y, angle: b.angle, scale };
         })
       );
@@ -425,7 +455,7 @@ function VideoBurst({
         bodiesRef.current = [];
         setPositions([]);
         setPhase("closed");
-  
+
         onClose();
       }
     }
@@ -456,21 +486,30 @@ function VideoBurst({
 
   if (phase === "closed" || typeof document === "undefined") return null;
 
+  const closing = phase === "imploding";
+
   return createPortal(
     <>
-      {/* Text fade overlay - controlled by parent */}
-
-      {/* Click-outside backdrop */}
+      {/* Soft backdrop — fades the page so prototypes feel intentional */}
       <div
         className="fixed inset-0 z-40"
         onClick={() => { if (!isDraggingRef.current) startClose(); }}
+        style={{
+          backgroundColor: "rgba(255,255,255,0.55)",
+          backdropFilter: "blur(2px)",
+          WebkitBackdropFilter: "blur(2px)",
+          opacity: closing ? 0 : 1,
+          transition: "opacity 420ms cubic-bezier(0.2, 0, 0, 1)",
+        }}
       />
 
       {/* Physics items */}
       {MESSENGER_MEDIA.map((item, i) => {
         const pos = positions[i];
-        if (!pos || pos.scale < 0.05) return null;
+        if (!pos || pos.scale < 0.02) return null;
         const w = ITEM_WIDTHS[i];
+        // Opacity matches scale for an ultra-clean emerge/recede
+        const opacity = Math.min(1, pos.scale * 1.15);
         return (
           <div
             key={item.id}
@@ -481,7 +520,9 @@ function VideoBurst({
               transform: `translate(-50%, -50%) rotate(${pos.angle}rad) scale(${pos.scale})`,
               transformOrigin: "center center",
               cursor: "grab",
-              willChange: "transform",
+              willChange: "transform, opacity",
+              opacity,
+              filter: "drop-shadow(0 12px 28px rgba(15, 20, 45, 0.14)) drop-shadow(0 2px 6px rgba(15, 20, 45, 0.08))",
             }}
             onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); startDrag(e.clientX, e.clientY, i); }}
             onMouseEnter={() => { hoveredRef.current = i; }}
