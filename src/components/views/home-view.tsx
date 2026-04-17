@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useImperativeHandle, useMemo, useSyncExternalStore, forwardRef } from "react";
-import { motion, useAnimationControls } from "motion/react";
+import { animate, motion, useMotionValue } from "motion/react";
 import { createPortal } from "react-dom";
 import Matter from "matter-js";
 import SafeWord from "@/components/magic-words/safe-word";
@@ -931,17 +931,33 @@ const itemTransition = {
   opacity: { duration: 0.7, ease: [0.25, 0, 0, 1] as [number, number, number, number] },
 };
 
-// Reusable: wires click + long-press on a logo to the sandbox's spawn() with
-// a satisfying scale "kick" on the logo each time.
+// Nervous-system hook for a spawner logo. Owns four motion values (x, y,
+// scale, rotate) that the caller applies to a motion.span wrapping the logo.
+//
+// States:
+//   idle      — hover tracking: logo leans 0–3 px toward the cursor
+//   pressed   — scale compresses to 0.92, lean resets to 0 (snappy)
+//   streaming — scale stays compressed, continuous micro-shudder (±2 px,
+//               ±0.04 rad), spawn interval runs and ramps 110 → 55 ms
+//   releasing — scale springs back through 1.0 with an overshoot
+//
+// Rationale: anticipation (hover lean) and anticipation (press compress) fire
+// *before* the payload arrives, so the logo feels like a button with weight
+// instead of a passive target. The release spring's damping is deliberately
+// low so the pop overshoots — the physical tell that something just happened.
 function useLogoPressSpawner(params: {
   ready: boolean;
   logoRef: React.RefObject<HTMLElement | null>;
   onSpawn: () => void;
-  kickControls: ReturnType<typeof useAnimationControls>;
 }) {
-  const { ready, logoRef, onSpawn, kickControls } = params;
+  const { ready, logoRef, onSpawn } = params;
 
-  // Keep onSpawn fresh without re-attaching event listeners
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const scale = useMotionValue(1);
+  const rotate = useMotionValue(0);
+
+  // Keep onSpawn fresh without re-attaching listeners.
   const onSpawnRef = useRef(onSpawn);
   useEffect(() => {
     onSpawnRef.current = onSpawn;
@@ -952,35 +968,58 @@ function useLogoPressSpawner(params: {
     const el = logoRef.current;
     if (!el) return;
 
+    type State = "idle" | "pressed" | "streaming";
+    let state: State = "idle";
     let pressTimer: ReturnType<typeof setTimeout> | null = null;
     let streamInterval: ReturnType<typeof setInterval> | null = null;
     let streamAccel: ReturnType<typeof setInterval> | null = null;
+    let jitterInterval: ReturnType<typeof setInterval> | null = null;
     let streamDelay = 110;
-    let isLongPressing = false;
     let pointerDown = false;
     let pressPointerId: number | null = null;
 
-    const kick = () => {
-      kickControls.start(
-        { scale: [1, 1.18, 1] },
-        { duration: 0.32, ease: [0.2, 0.9, 0.3, 1.2] }
-      );
+    const softSpring = { type: "spring" as const, stiffness: 260, damping: 22 };
+    const snappySpring = { type: "spring" as const, stiffness: 520, damping: 32 };
+    const releaseSpring = { type: "spring" as const, stiffness: 340, damping: 13 };
+
+    const animatePress = () => {
+      animate(scale, 0.92, snappySpring);
+      animate(x, 0, snappySpring);
+      animate(y, 0, snappySpring);
+      animate(rotate, 0, snappySpring);
     };
 
-    const fire = () => {
-      onSpawnRef.current();
-      kick();
+    const animateRelease = () => {
+      animate(scale, 1, releaseSpring); // low damping → overshoot pop
+      animate(x, 0, softSpring);
+      animate(y, 0, softSpring);
+      animate(rotate, 0, softSpring);
+    };
+
+    const startJitter = () => {
+      if (jitterInterval) return;
+      jitterInterval = setInterval(() => {
+        animate(x, (Math.random() - 0.5) * 2.4, { duration: 0.06 });
+        animate(y, (Math.random() - 0.5) * 2.4, { duration: 0.06 });
+        animate(rotate, (Math.random() - 0.5) * 0.05, { duration: 0.06 });
+      }, 60);
+    };
+
+    const stopJitter = () => {
+      if (jitterInterval) clearInterval(jitterInterval);
+      jitterInterval = null;
     };
 
     const startStream = () => {
-      isLongPressing = true;
-      fire();
-      streamInterval = setInterval(fire, streamDelay);
+      state = "streaming";
+      onSpawnRef.current();
+      startJitter();
+      streamInterval = setInterval(() => onSpawnRef.current(), streamDelay);
       streamAccel = setInterval(() => {
         if (streamDelay > 55) {
           streamDelay -= 6;
           if (streamInterval) clearInterval(streamInterval);
-          streamInterval = setInterval(fire, streamDelay);
+          streamInterval = setInterval(() => onSpawnRef.current(), streamDelay);
         }
       }, 220);
     };
@@ -991,14 +1030,16 @@ function useLogoPressSpawner(params: {
       streamInterval = null;
       streamAccel = null;
       streamDelay = 110;
+      stopJitter();
     };
 
     const onDown = (e: PointerEvent) => {
       if (pointerDown) return;
       pointerDown = true;
       pressPointerId = e.pointerId;
-      isLongPressing = false;
+      state = "pressed";
       e.preventDefault();
+      animatePress();
       pressTimer = setTimeout(() => {
         pressTimer = null;
         startStream();
@@ -1014,45 +1055,68 @@ function useLogoPressSpawner(params: {
         clearTimeout(pressTimer);
         pressTimer = null;
       }
-      if (isLongPressing) {
+      if (state === "streaming") {
         stopStream();
-        isLongPressing = false;
       } else {
-        fire();
+        // Single tap — fire one spawn on release (already in pressed state).
+        onSpawnRef.current();
       }
+      state = "idle";
+      animateRelease();
     };
 
     const onCancel = () => {
       if (pressTimer) clearTimeout(pressTimer);
       pressTimer = null;
       stopStream();
-      isLongPressing = false;
+      state = "idle";
       pointerDown = false;
       pressPointerId = null;
+      animateRelease();
+    };
+
+    // Hover lean — only when idle, so pressed/streaming states keep their pose.
+    const onMove = (e: PointerEvent) => {
+      if (state !== "idle") return;
+      const rect = el.getBoundingClientRect();
+      const dx = e.clientX - rect.left - rect.width / 2;
+      const dy = e.clientY - rect.top - rect.height / 2;
+      const lean = 3;
+      animate(x, Math.max(-lean, Math.min(lean, dx * 0.14)), softSpring);
+      animate(y, Math.max(-lean, Math.min(lean, dy * 0.14)), softSpring);
+    };
+
+    const onLeave = () => {
+      if (state !== "idle") return;
+      animate(x, 0, softSpring);
+      animate(y, 0, softSpring);
     };
 
     el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
 
     return () => {
       el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
       if (pressTimer) clearTimeout(pressTimer);
       stopStream();
     };
-  }, [ready, logoRef, kickControls]);
+  }, [ready, logoRef, x, y, scale, rotate]);
+
+  return { x, y, scale, rotate };
 }
 
 export default function HomeView() {
   const [ready, setReady] = useState(false);
 
   const messengerRef = useRef<HTMLSpanElement>(null);
-  const messengerKick = useAnimationControls();
-
   const mslRef = useRef<HTMLSpanElement>(null);
-  const mslKick = useAnimationControls();
 
   const sandboxRef = useRef<PhoneSandboxHandle>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
@@ -1091,16 +1155,14 @@ export default function HomeView() {
     [getMessengerOrigin, getMslOrigin]
   );
 
-  useLogoPressSpawner({
+  const messengerLogo = useLogoPressSpawner({
     ready,
     logoRef: messengerRef,
-    kickControls: messengerKick,
     onSpawn: useCallback(() => sandboxRef.current?.spawn("messenger"), []),
   });
-  useLogoPressSpawner({
+  const mslLogo = useLogoPressSpawner({
     ready,
     logoRef: mslRef,
-    kickControls: mslKick,
     onSpawn: useCallback(() => sandboxRef.current?.spawn("msl"), []),
   });
 
@@ -1130,8 +1192,14 @@ export default function HomeView() {
         <br />
         Then <ExpressiveWord /> on{" "}
         <motion.span
-          style={{ display: "inline-block", verticalAlign: "middle" }}
-          animate={messengerKick}
+          style={{
+            display: "inline-block",
+            verticalAlign: "middle",
+            x: messengerLogo.x,
+            y: messengerLogo.y,
+            scale: messengerLogo.scale,
+            rotate: messengerLogo.rotate,
+          }}
         >
           <LogoWithLabel
             logoSrc="/messenger.png"
@@ -1148,8 +1216,14 @@ export default function HomeView() {
         <br />
         Now I&apos;m making them <SmartWord /> on{" "}
         <motion.span
-          style={{ display: "inline-block", verticalAlign: "middle" }}
-          animate={mslKick}
+          style={{
+            display: "inline-block",
+            verticalAlign: "middle",
+            x: mslLogo.x,
+            y: mslLogo.y,
+            scale: mslLogo.scale,
+            rotate: mslLogo.rotate,
+          }}
         >
           <LogoWithLabel
             logoSrc="/metaai.png"
