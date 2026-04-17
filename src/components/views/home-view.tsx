@@ -1,12 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useImperativeHandle, useMemo, forwardRef } from "react";
+import { useState, useEffect, useRef, useCallback, useImperativeHandle, useMemo, useSyncExternalStore, forwardRef } from "react";
 import { motion, useAnimationControls } from "motion/react";
 import { createPortal } from "react-dom";
 import Matter from "matter-js";
 import SafeWord from "@/components/magic-words/safe-word";
 import ExpressiveWord from "@/components/magic-words/expressive-word";
 import SmartWord from "@/components/magic-words/smart-word";
+import { sfx } from "@/lib/sfx";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+
+// Subtle haptic nudge on touch devices. No-ops on desktop.
+function tinyHaptic(ms: number) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try { navigator.vibrate(ms); } catch { /* ignore */ }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Preload
@@ -394,6 +403,7 @@ const PhoneSandbox = forwardRef<
         const t = 80;
         const opts = { isStatic: true, restitution: 0.35, friction: 0.9 };
         const floor = Matter.Bodies.rectangle(W / 2, H + t / 2 - 8, W * 2, t, opts);
+        floor.label = "floor"; // tagged so collisionStart can distinguish thud from tick
         const ceiling = Matter.Bodies.rectangle(W / 2, -H, W * 2, t, opts);
         const wallL = Matter.Bodies.rectangle(-t / 2 + 8, H / 2, t, H * 4, opts);
         const wallR = Matter.Bodies.rectangle(W + t / 2 - 8, H / 2, t, H * 4, opts);
@@ -408,6 +418,40 @@ const PhoneSandbox = forwardRef<
         const src = sourcesRef.current.find((s) => s.id === sid);
         return src ? src.getOrigin() : { x: 0, y: 0 };
       };
+
+      // Sound: tick on phone-phone, thud on phone-floor.
+      // Gated by impulse/depth so we don't spam on grazing contacts.
+      const onCollision = (evt: Matter.IEventCollision<Matter.Engine>) => {
+        for (const pair of evt.pairs) {
+          const a = pair.bodyA;
+          const b = pair.bodyB;
+          const aFloor = a.label === "floor";
+          const bFloor = b.label === "floor";
+
+          if (aFloor || bFloor) {
+            const phone = aFloor ? b : a;
+            if (phone.isStatic) continue;
+            const vy = Math.abs(phone.velocity.y);
+            if (vy < 3) continue; // ignore gentle contacts
+            const item = itemsRef.current.find((it) => it.body === phone);
+            const pitch = item ? VARIANTS[item.variant].thudPitch : 0.5;
+            const intensity = Math.min(1, vy / 22);
+            sfx.thud({ pitch, intensity });
+          } else if (!a.isStatic && !b.isStatic) {
+            if (pair.collision.depth < 2) continue;
+            const relVx = a.velocity.x - b.velocity.x;
+            const relVy = a.velocity.y - b.velocity.y;
+            const rel = Math.sqrt(relVx * relVx + relVy * relVy);
+            const intensity = Math.min(1, rel / 18);
+            if (intensity < 0.12) continue;
+            sfx.tick({
+              pitch: 0.5 + (Math.random() - 0.5) * 0.35,
+              intensity,
+            });
+          }
+        }
+      };
+      Matter.Events.on(engine, "collisionStart", onCollision);
 
       let last = performance.now();
       const tick = (now: number) => {
@@ -540,6 +584,7 @@ const PhoneSandbox = forwardRef<
       return () => {
         cancelAnimationFrame(rafRef.current);
         window.removeEventListener("resize", buildWalls);
+        Matter.Events.off(engine, "collisionStart", onCollision);
         Matter.Engine.clear(engine);
         engineRef.current = null;
         itemsRef.current = [];
@@ -615,6 +660,13 @@ const PhoneSandbox = forwardRef<
         idlePhase: Math.random() * Math.PI * 2, // phase offset per phone — no sync-breathing
       });
       Matter.Composite.add(engine.world, body);
+
+      // Sensory feedback — pop (pitched by variant) + haptic nudge on mobile.
+      sfx.pop({
+        pitch: profile.popPitch + (Math.random() - 0.5) * 0.12,
+        intensity: 0.85,
+      });
+      tinyHaptic(variant === "heavy" ? 9 : variant === "light" ? 4 : 6);
     }, []);
 
     const clearAll = useCallback(() => {
@@ -787,6 +839,60 @@ const PhoneSandbox = forwardRef<
 // Silent preloader — mounts hidden videos so they buffer before the first
 // click. Without this, the first phone to spawn shows a black rectangle
 // while the video element fetches its bytes.
+// Tiny speaker toggle — bottom-right, barely there. Persists mute to
+// localStorage via the sfx module.
+function SoundToggle() {
+  const muted = useSyncExternalStore(
+    (fn) => sfx.subscribe(fn),
+    () => sfx.isMuted(),
+    () => true // default muted on SSR
+  );
+
+  const toggle = () => {
+    const next = !sfx.isMuted();
+    sfx.setMuted(next);
+    // Fire a tiny pop on un-mute so the user immediately hears that audio
+    // is live (also works around autoplay policy — this is a user gesture).
+    if (!next) sfx.pop({ pitch: 0.6, intensity: 0.6 });
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={muted ? "Enable sound" : "Mute sound"}
+      className="fixed bottom-5 right-5 z-[70] flex items-center justify-center rounded-full cursor-pointer"
+      style={{
+        width: 36,
+        height: 36,
+        color: muted ? "#9ca3af" : "#111827",
+        backgroundColor: "rgba(255,255,255,0.7)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        border: "1px solid rgba(0,0,0,0.06)",
+        transition: "color 180ms ease, transform 180ms cubic-bezier(.2,.9,.3,1.2)",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
+      onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 5 6 9H2v6h4l5 4V5z" />
+        {muted ? (
+          <>
+            <line x1="23" y1="9" x2="17" y2="15" />
+            <line x1="17" y1="9" x2="23" y2="15" />
+          </>
+        ) : (
+          <>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          </>
+        )}
+      </svg>
+    </button>
+  );
+}
+
 function MediaPreloader({ media }: { media: MediaItem[] }) {
   return (
     <div
@@ -958,6 +1064,9 @@ export default function HomeView() {
 
   useEffect(() => {
     preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
+    // Pre-decode sfx buffers. AudioContext will stay suspended until the
+    // first user gesture — the resume happens automatically on play().
+    sfx.preload();
   }, []);
 
   const getMessengerOrigin = useCallback(() => {
@@ -1063,6 +1172,7 @@ export default function HomeView() {
         sources={sources}
         getDragForbiddenRect={getDragForbiddenRect}
       />
+      <SoundToggle />
     </>
   );
 }

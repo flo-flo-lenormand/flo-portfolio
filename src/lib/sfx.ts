@@ -21,17 +21,34 @@ type SoundConfig = {
 };
 
 const SOUND_CONFIG: Record<SoundName, SoundConfig> = {
-  pop: { src: "/sounds/pop.mp3", gain: 0.32, pitchRange: 400 }, // ±4 semitones
-  tick: { src: "/sounds/tick.mp3", gain: 0.22, pitchRange: 300 },
-  thud: { src: "/sounds/thud.mp3", gain: 0.28, pitchRange: 200 },
+  pop: { src: "/pop.mp3", gain: 0.32, pitchRange: 400 }, // ±4 semitones
+  tick: { src: "/tick.mp3", gain: 0.22, pitchRange: 300 },
+  thud: { src: "/thud.mp3", gain: 0.28, pitchRange: 200 },
 };
 
 const STORAGE_KEY = "flo.sfx.muted";
+
+// Auto-detect leading silence. AI-generated SFX often have 100–300ms of
+// near-zero samples at the top of the file, which would delay playback
+// perceptibly. We scan the first channel and return the offset (in seconds)
+// at which actual sound begins, with a 32-sample lead-in so the attack
+// transient isn't clipped.
+function detectAudioStart(buffer: AudioBuffer, threshold = 0.005): number {
+  const data = buffer.getChannelData(0);
+  const maxScan = Math.min(data.length, buffer.sampleRate * 2); // first 2s
+  for (let i = 0; i < maxScan; i++) {
+    if (Math.abs(data[i]) > threshold) {
+      return Math.max(0, (i - 32) / buffer.sampleRate);
+    }
+  }
+  return 0;
+}
 
 class SfxEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private buffers: Partial<Record<SoundName, AudioBuffer>> = {};
+  private startOffsets: Partial<Record<SoundName, number>> = {};
   private loadPromises: Partial<Record<SoundName, Promise<AudioBuffer | null>>> = {};
   private muted = false;
   private loaded = false;
@@ -87,6 +104,7 @@ class SfxEngine {
         const arr = await res.arrayBuffer();
         const buf = await this.ctx.decodeAudioData(arr);
         this.buffers[name] = buf;
+        this.startOffsets[name] = detectAudioStart(buf);
         return buf;
       } catch {
         return null;
@@ -119,7 +137,10 @@ class SfxEngine {
     gain.gain.value = cfg.gain * intensity;
     src.connect(gain);
     gain.connect(this.master);
-    src.start();
+    // Skip past any leading silence auto-detected at decode time so the
+    // attack transient fires the instant we call play().
+    const offset = this.startOffsets[name] ?? 0;
+    src.start(0, offset);
     // Auto-cleanup
     src.onended = () => {
       try { src.disconnect(); gain.disconnect(); } catch { /* */ }
