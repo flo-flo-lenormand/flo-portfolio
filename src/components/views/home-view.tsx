@@ -861,6 +861,12 @@ const PhoneSandbox = forwardRef<
     if (typeof document === "undefined") return null;
     if (Object.keys(frames).length === 0 && !implodingRef.current) return null;
 
+    // Scroll parallax — phones render offset against scroll at 15% rate, so
+    // they feel like they sit on a deeper layer than the text. Physics bodies
+    // stay in stable coords; we just translate the visual position at render.
+    const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    const parallaxY = -scrollY * 0.15;
+
     return createPortal(
       <>
         {itemsRef.current.map((it) => {
@@ -895,7 +901,7 @@ const PhoneSandbox = forwardRef<
               className="fixed z-50 select-none"
               style={{
                 left: f.x,
-                top: f.y,
+                top: f.y + parallaxY,
                 transform: `translate(-50%, -50%) rotate(${finalAngle}rad) scale(${finalScale})${scaleYStr}`,
                 transformOrigin: "center center",
                 cursor: isDragging ? "grabbing" : "grab",
