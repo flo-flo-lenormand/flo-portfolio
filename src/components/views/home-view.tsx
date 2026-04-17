@@ -27,6 +27,7 @@ const PRELOAD_IMAGES = [
   "/instagram-written.png",
   "/messenger-written.png",
   "/msl-written.png",
+  "/phoneshell.png", // composited on top of shelled videos — load up-front
 ];
 
 function preloadImages(srcs: string[]): Promise<void[]> {
@@ -150,20 +151,35 @@ type MediaItem = {
   // the phone in a source asset. 1.00 = no change, 1.06 = 3% cropped on
   // each side. Only applied to non-raw items.
   crop?: number;
+  // When true, render the media inside the /phoneshell.png device frame.
+  // The physics body is sized to the shell aspect (1.97), not the screen.
+  shell?: boolean;
 };
 
 // Default aspect for items that don't specify one (iPhone 9:19.5 screen)
 const PHONE_ASPECT = 19.5 / 9;
 
+// Phone-shell (device frame) geometry, measured from /phoneshell.png
+// (1419 × 2796) alpha channel.
+const SHELL_SRC = "/phoneshell.png";
+const SHELL_ASPECT = 2796 / 1419; // h / w, ≈ 1.9704
+const SHELL_SCREEN_LEFT = 0.08457;
+const SHELL_SCREEN_TOP = 0.09442;
+const SHELL_SCREEN_WIDTH = 0.83087;
+const SHELL_SCREEN_HEIGHT = 0.86266;
+
 const MESSENGER_MEDIA: MediaItem[] = [
-  { src: "/mediapicker3.mp4", id: "picker", type: "video" },
-  { src: "/reactions.mp4", id: "reactions", type: "video" },
-  { src: "/videocontrols2.mp4", id: "controls", type: "video" },
-  { src: "/favorite.mp4", id: "favorite", type: "video" },
-  { src: "/loading.mp4", id: "loading", type: "video" },
-  { src: "/messenger-screens/exploration01.mp4", id: "explore1", type: "video" },
-  { src: "/messenger-screens/exploration02.mp4", id: "explore2", type: "video" },
-  { src: "/messenger-screens/exploration03.mp4", id: "explore3", type: "video" },
+  // Videos render inside /phoneshell.png so their baked-in white
+  // backgrounds are hidden behind the device bezel.
+  { src: "/mediapicker3.mp4", id: "picker", type: "video", shell: true },
+  { src: "/reactions.mp4", id: "reactions", type: "video", shell: true },
+  { src: "/videocontrols2.mp4", id: "controls", type: "video", shell: true },
+  { src: "/favorite.mp4", id: "favorite", type: "video", shell: true },
+  { src: "/loading.mp4", id: "loading", type: "video", shell: true },
+  { src: "/messenger-screens/exploration01.mp4", id: "explore1", type: "video", shell: true },
+  { src: "/messenger-screens/exploration02.mp4", id: "explore2", type: "video", shell: true },
+  { src: "/messenger-screens/exploration03.mp4", id: "explore3", type: "video", shell: true },
+  // PNGs already look clean — leave them edge-to-edge.
   { src: "/messenger-screens/03.png", id: "screen03", type: "image" },
   { src: "/messenger-screens/04.png", id: "screen04", type: "image" },
   { src: "/messenger-screens/In-thread.png", id: "inthread", type: "image" },
@@ -184,7 +200,10 @@ const MSL_MEDIA: MediaItem[] = [
   },
 ];
 
-const itemAspect = (item: MediaItem) => item.aspect ?? PHONE_ASPECT;
+const itemAspect = (item: MediaItem) => {
+  if (item.shell) return SHELL_ASPECT;
+  return item.aspect ?? PHONE_ASPECT;
+};
 
 // ---------------------------------------------------------------------------
 // MediaElement — a phone-shaped card
@@ -265,6 +284,50 @@ function MediaElement({
         style={innerStyle}
       />
     );
+
+  // Shelled mode — media is cropped into the device-frame's screen cutout,
+  // with the shell PNG layered on top so the bezel and Dynamic Island are
+  // preserved. Kills any white halo in the source by hiding it behind the
+  // bezel.
+  if (item.shell) {
+    return (
+      <div
+        className="pointer-events-none select-none"
+        style={{ width, height, position: "relative" }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: `${SHELL_SCREEN_LEFT * 100}%`,
+            top: `${SHELL_SCREEN_TOP * 100}%`,
+            width: `${SHELL_SCREEN_WIDTH * 100}%`,
+            height: `${SHELL_SCREEN_HEIGHT * 100}%`,
+            overflow: "hidden",
+            backgroundColor: "#000",
+            // The screen area in the real iPhone is rounded; inline a
+            // subtle rounding so the media doesn't poke out at corners.
+            borderRadius: `${width * 0.065}px`,
+          }}
+        >
+          {media}
+        </div>
+        <img
+          src={SHELL_SRC}
+          alt=""
+          draggable={false}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            display: "block",
+            pointerEvents: "none",
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
