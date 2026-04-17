@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
-import { motion } from "motion/react";
+import { motion, useAnimationControls } from "motion/react";
 import { createPortal } from "react-dom";
 import Matter from "matter-js";
 import SafeWord from "@/components/magic-words/safe-word";
@@ -269,6 +269,21 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
           const origin = getOrigin();
           for (const it of itemsRef.current) {
             const b = it.body;
+
+            // Keep the phone portrait: apply a restoring torque toward the
+            // nearest upright orientation. Minimal during fast motion so the
+            // burst still tumbles, stronger as the phone slows and settles.
+            if (!b.isStatic) {
+              let delta = b.angle;
+              while (delta > Math.PI) delta -= Math.PI * 2;
+              while (delta < -Math.PI) delta += Math.PI * 2;
+              const speed = Math.sqrt(b.velocity.x * b.velocity.x + b.velocity.y * b.velocity.y);
+              const settling = 1 - Math.min(1, speed / 8);
+              const kTorque = 0.0010 + 0.012 * settling;
+              const aDamp = 0.994 - settling * 0.10;
+              Matter.Body.setAngularVelocity(b, b.angularVelocity * aDamp - delta * kTorque);
+            }
+
             // Emerge scale — items literally grow out of the logo during the first ~140px
             const dx = b.position.x - origin.x;
             const dy = b.position.y - origin.y;
@@ -503,11 +518,6 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
           if (!f || f.scale < 0.02) return null;
           const media = MESSENGER_MEDIA[it.mediaIndex];
           const isDragging = draggingRef.current.has(it.key);
-          // Shadow amplifies with downward velocity and lift
-          const vMag = Math.min(30, Math.abs(f.vy));
-          const shadowBlur = 18 + vMag * 0.9;
-          const shadowY = 10 + vMag * 0.35;
-          const shadowAlpha = 0.14 + Math.min(0.12, vMag * 0.004) + (isDragging ? 0.08 : 0);
           return (
             <div
               key={it.key}
@@ -520,7 +530,6 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
                 cursor: isDragging ? "grabbing" : "grab",
                 willChange: "transform, opacity",
                 opacity: f.opacity,
-                filter: `drop-shadow(0 ${shadowY}px ${shadowBlur}px rgba(15, 20, 45, ${shadowAlpha})) drop-shadow(0 2px 6px rgba(15, 20, 45, 0.08))`,
                 touchAction: "none",
                 transition: isDragging ? "transform 120ms cubic-bezier(.2,.9,.3,1.2)" : undefined,
               }}
@@ -551,9 +560,9 @@ const itemTransition = {
 
 export default function HomeView() {
   const [ready, setReady] = useState(false);
-  const [logoKick, setLogoKick] = useState(0); // increments on each spawn to retrigger kick animation
   const messengerRef = useRef<HTMLSpanElement>(null);
   const fountainRef = useRef<MessengerFountainHandle>(null);
+  const kickControls = useAnimationControls();
 
   useEffect(() => {
     preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
@@ -581,7 +590,12 @@ export default function HomeView() {
     let pointerDown = false;
     let pressPointerId: number | null = null;
 
-    const kick = () => setLogoKick((k) => k + 1);
+    const kick = () => {
+      kickControls.start(
+        { scale: [1, 1.18, 1] },
+        { duration: 0.32, ease: [0.2, 0.9, 0.3, 1.2] }
+      );
+    };
 
     const startStream = () => {
       isLongPressing = true;
@@ -662,7 +676,7 @@ export default function HomeView() {
       if (pressTimer) clearTimeout(pressTimer);
       stopStream();
     };
-  }, [ready]);
+  }, [ready, kickControls]);
 
   if (!ready) return null;
 
@@ -690,9 +704,7 @@ export default function HomeView() {
         Then <ExpressiveWord /> on{" "}
         <motion.span
           style={{ display: "inline-block", verticalAlign: "middle" }}
-          animate={{ scale: [1, 1.18, 1] }}
-          transition={{ duration: 0.32, ease: [0.2, 0.9, 0.3, 1.2] }}
-          key={logoKick}
+          animate={kickControls}
         >
           <LogoWithLabel
             logoSrc="/messenger.png"
