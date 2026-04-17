@@ -255,7 +255,10 @@ function MediaElement({
   }
 
   // Inner zoom to crop away source whitespace/halo. 1 = no change.
-  const crop = item.crop ?? 1;
+  // Shelled videos usually have a baked-in device frame in the recording,
+  // so they need an aggressive default crop to hide that inner shell and
+  // show just the screen content inside our shell's screen cutout.
+  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.32 : 1);
   const innerStyle: React.CSSProperties = {
     width: "100%",
     height: "100%",
@@ -475,6 +478,10 @@ const PhoneSandbox = forwardRef<
     const cursorRef = useRef<{ x: number; y: number }>({ x: -9999, y: -9999 });
     const sourcesRef = useRef<SandboxSource[]>(sources);
     sourcesRef.current = sources;
+    // Keep the drag-forbidden callback in a ref so scroll/resize handlers
+    // inside the one-time engine effect always see the latest version.
+    const textRectRef = useRef(getDragForbiddenRect);
+    textRectRef.current = getDragForbiddenRect;
 
     // ---- Engine + walls setup (one-time) ----
     useEffect(() => {
@@ -518,6 +525,47 @@ const PhoneSandbox = forwardRef<
       window.addEventListener("pointermove", onPointerMove);
       window.addEventListener("pointerleave", onPointerLeave);
 
+      // Text-as-wall — static Matter body at the paragraph's rect so
+      // phones bounce off it. Kept in sync on scroll + resize. The body
+      // is replaced (not moved-and-resized) whenever the text's size or
+      // position changes meaningfully, because matter-js doesn't support
+      // resizing static rectangles in place.
+      let textBody: Matter.Body | null = null;
+      let lastRect: { cx: number; cy: number; w: number; h: number } | null = null;
+      const syncTextWall = () => {
+        const rect = textRectRef.current?.();
+        if (!rect || rect.width < 2 || rect.height < 2) {
+          if (textBody) {
+            Matter.Composite.remove(engine.world, textBody);
+            textBody = null;
+            lastRect = null;
+          }
+          return;
+        }
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const w = rect.width;
+        const h = rect.height;
+        // If size changed appreciably, rebuild the body.
+        if (!textBody || !lastRect || Math.abs(lastRect.w - w) > 2 || Math.abs(lastRect.h - h) > 2) {
+          if (textBody) Matter.Composite.remove(engine.world, textBody);
+          textBody = Matter.Bodies.rectangle(cx, cy, w, h, {
+            isStatic: true,
+            restitution: 0.3,
+            friction: 0.5,
+          });
+          textBody.label = "text";
+          Matter.Composite.add(engine.world, textBody);
+          lastRect = { cx, cy, w, h };
+        } else if (Math.abs(lastRect.cx - cx) > 0.5 || Math.abs(lastRect.cy - cy) > 0.5) {
+          Matter.Body.setPosition(textBody, { x: cx, y: cy });
+          lastRect = { cx, cy, w, h };
+        }
+      };
+      syncTextWall();
+      window.addEventListener("scroll", syncTextWall, { passive: true });
+      window.addEventListener("resize", syncTextWall);
+
       // Find an item's source origin (for implode only)
       const originFor = (sid: string) => {
         const src = sourcesRef.current.find((s) => s.id === sid);
@@ -532,6 +580,8 @@ const PhoneSandbox = forwardRef<
           const b = pair.bodyB;
           const aFloor = a.label === "floor";
           const bFloor = b.label === "floor";
+          const aText = a.label === "text";
+          const bText = b.label === "text";
 
           if (aFloor || bFloor) {
             const phone = aFloor ? b : a;
@@ -542,6 +592,23 @@ const PhoneSandbox = forwardRef<
             const pitch = item ? VARIANTS[item.variant].thudPitch : 0.5;
             const intensity = Math.min(1, vy / 22);
             sfx.thud({ pitch, intensity });
+            if (item) {
+              item.hitAt = performance.now();
+              item.hitIntensity = intensity;
+            }
+          } else if (aText || bText) {
+            // Phone bouncing off the text block — tick, higher pitch
+            // than inter-phone for a lighter "paper" feel.
+            const phone = aText ? b : a;
+            if (phone.isStatic) continue;
+            const speed = Math.sqrt(
+              phone.velocity.x * phone.velocity.x +
+                phone.velocity.y * phone.velocity.y
+            );
+            if (speed < 2) continue;
+            const intensity = Math.min(1, speed / 16);
+            sfx.tick({ pitch: 0.7 + Math.random() * 0.15, intensity });
+            const item = itemsRef.current.find((it) => it.body === phone);
             if (item) {
               item.hitAt = performance.now();
               item.hitIntensity = intensity;
@@ -733,6 +800,9 @@ const PhoneSandbox = forwardRef<
         window.removeEventListener("resize", buildWalls);
         window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("pointerleave", onPointerLeave);
+        window.removeEventListener("scroll", syncTextWall);
+        window.removeEventListener("resize", syncTextWall);
+        if (textBody) Matter.Composite.remove(engine.world, textBody);
         Matter.Events.off(engine, "collisionStart", onCollision);
         Matter.Engine.clear(engine);
         engineRef.current = null;
@@ -1082,10 +1152,8 @@ const PhoneSandbox = forwardRef<
 );
 
 // Inspection panel — shown when a phone in the pile is single-tapped.
-// Renders a centered enlarged view behind a dim backdrop. Animation is a
-// simple scale+fade in/out to keep the pile rendering untouched (motion's
-// layout system doesn't play well with elements whose transform updates
-// every frame).
+// No backdrop: the phone scales up in place on a transparent click-catching
+// layer. Clicking anywhere (including the phone itself) dismisses.
 function InspectionPanel({
   item,
   onClose,
@@ -1102,34 +1170,29 @@ function InspectionPanel({
   const fit = fromWidth.h <= availH ? fromWidth : fromHeight;
 
   return (
-    <>
+    <motion.div
+      className="fixed inset-0 z-[55] flex items-center justify-center cursor-pointer"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+      onClick={onClose}
+      style={{ touchAction: "none" }}
+    >
       <motion.div
-        className="fixed inset-0 z-[54]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-        style={{ backgroundColor: "rgba(0,0,0,0.62)", backdropFilter: "blur(2px)" }}
-        onClick={onClose}
-      />
-      <motion.div
-        className="fixed z-[55] select-none"
-        initial={{ opacity: 0, scale: 0.82 }}
+        className="select-none"
+        initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
+        exit={{ opacity: 0, scale: 0.92 }}
         transition={{ type: "spring", stiffness: 320, damping: 28 }}
         style={{
-          top: "50%",
-          left: "50%",
-          translate: "-50% -50%",
           width: fit.w,
-          filter: "drop-shadow(0 30px 60px rgba(15, 20, 45, 0.28))",
+          filter: "drop-shadow(0 30px 60px rgba(15, 20, 45, 0.22))",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <MediaElement item={item} width={fit.w} audible />
       </motion.div>
-    </>
+    </motion.div>
   );
 }
 
