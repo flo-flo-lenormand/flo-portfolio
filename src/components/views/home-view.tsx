@@ -288,8 +288,16 @@ export type PhoneSandboxHandle = {
   count: () => number;
 };
 
-const PhoneSandbox = forwardRef<PhoneSandboxHandle, { sources: SandboxSource[] }>(
-  function PhoneSandbox({ sources }, ref) {
+const PhoneSandbox = forwardRef<
+  PhoneSandboxHandle,
+  {
+    sources: SandboxSource[];
+    // Optional forbidden zone: phones can't be *dragged* onto this rect.
+    // Physics (spill, bounce, pile) is unaffected.
+    getDragForbiddenRect?: () => DOMRect | null;
+  }
+>(
+  function PhoneSandbox({ sources, getDragForbiddenRect }, ref) {
     type Frame = {
       x: number;
       y: number;
@@ -572,10 +580,35 @@ const PhoneSandbox = forwardRef<PhoneSandboxHandle, { sources: SandboxSource[] }
 
       const onMove = (ev: PointerEvent) => {
         if (ev.pointerId !== e.pointerId) return;
-        Matter.Body.setPosition(body, {
-          x: ev.clientX - offsetX,
-          y: ev.clientY - offsetY,
-        });
+        let px = ev.clientX - offsetX;
+        let py = ev.clientY - offsetY;
+
+        // Don't let a dragged phone cover the text paragraph. Collide-and-slide:
+        // if the phone's center is inside the forbidden rect expanded by its
+        // own half-size, snap it to the nearest edge.
+        const forbidden = getDragForbiddenRect?.();
+        if (forbidden) {
+          const pad = 8;
+          const halfW = item.width / 2 + pad;
+          const halfH = (item.width * item.aspect) / 2 + pad;
+          const ex1 = forbidden.left - halfW;
+          const ex2 = forbidden.right + halfW;
+          const ey1 = forbidden.top - halfH;
+          const ey2 = forbidden.bottom + halfH;
+          if (px > ex1 && px < ex2 && py > ey1 && py < ey2) {
+            const dL = px - ex1;
+            const dR = ex2 - px;
+            const dT = py - ey1;
+            const dB = ey2 - py;
+            const m = Math.min(dL, dR, dT, dB);
+            if (m === dL) px = ex1;
+            else if (m === dR) px = ex2;
+            else if (m === dT) py = ey1;
+            else py = ey2;
+          }
+        }
+
+        Matter.Body.setPosition(body, { x: px, y: py });
         Matter.Body.setAngle(body, body.angle * 0.92);
         history.push({ x: ev.clientX, y: ev.clientY, t: performance.now() });
         const cutoff = performance.now() - 90;
@@ -611,7 +644,7 @@ const PhoneSandbox = forwardRef<PhoneSandboxHandle, { sources: SandboxSource[] }
       target.addEventListener("pointermove", onMove);
       target.addEventListener("pointerup", onUp);
       target.addEventListener("pointercancel", onUp);
-    }, []);
+    }, [getDragForbiddenRect]);
 
     if (typeof document === "undefined") return null;
     if (Object.keys(frames).length === 0 && !implodingRef.current) return null;
@@ -817,6 +850,12 @@ export default function HomeView() {
   const mslKick = useAnimationControls();
 
   const sandboxRef = useRef<PhoneSandboxHandle>(null);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  const getDragForbiddenRect = useCallback(
+    () => textRef.current?.getBoundingClientRect() ?? null,
+    []
+  );
 
   useEffect(() => {
     preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
@@ -862,6 +901,7 @@ export default function HomeView() {
   return (
     <>
       <motion.p
+        ref={textRef}
         className="text-[22px] font-medium leading-normal text-black"
         style={{ width: 460 }}
         variants={itemVariants}
@@ -919,7 +959,11 @@ export default function HomeView() {
       </motion.p>
 
       <MediaPreloader media={[...MESSENGER_MEDIA, ...MSL_MEDIA]} />
-      <PhoneSandbox ref={sandboxRef} sources={sources} />
+      <PhoneSandbox
+        ref={sandboxRef}
+        sources={sources}
+        getDragForbiddenRect={getDragForbiddenRect}
+      />
     </>
   );
 }
