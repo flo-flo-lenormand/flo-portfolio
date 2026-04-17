@@ -233,7 +233,6 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
         height,
         borderRadius: Math.max(18, width * 0.12),
         overflow: "hidden",
-        backgroundColor: "#0a0a0a",
       }}
     >
       {media}
