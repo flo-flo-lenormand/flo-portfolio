@@ -386,6 +386,9 @@ const PhoneSandbox = forwardRef<
     const rafRef = useRef(0);
     const draggingRef = useRef<Set<number>>(new Set());
     const implodingRef = useRef(false);
+    // Hover magnetism — tracked globally, applied per-frame.
+    // -1,-1 means cursor has left the viewport (no force).
+    const cursorRef = useRef<{ x: number; y: number }>({ x: -9999, y: -9999 });
     const sourcesRef = useRef<SandboxSource[]>(sources);
     sourcesRef.current = sources;
 
@@ -418,6 +421,18 @@ const PhoneSandbox = forwardRef<
       };
       buildWalls();
       window.addEventListener("resize", buildWalls);
+
+      // Track cursor for hover magnetism.
+      const onPointerMove = (e: PointerEvent) => {
+        cursorRef.current.x = e.clientX;
+        cursorRef.current.y = e.clientY;
+      };
+      const onPointerLeave = () => {
+        cursorRef.current.x = -9999;
+        cursorRef.current.y = -9999;
+      };
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerleave", onPointerLeave);
 
       // Find an item's source origin (for implode only)
       const originFor = (sid: string) => {
@@ -496,6 +511,23 @@ const PhoneSandbox = forwardRef<
                 b,
                 b.angularVelocity * aDamp - delta * kTorque
               );
+            }
+
+            // Hover magnetism — cursor within 80 px of a non-dragged phone
+            // applies a small upward buoyancy force, strongest at the
+            // center of the phone, falling off quadratically at the edge.
+            // The pile "notices" a passing cursor.
+            if (!b.isStatic && !implodingRef.current) {
+              const cx = cursorRef.current.x;
+              const cy = cursorRef.current.y;
+              const ddx = b.position.x - cx;
+              const ddy = b.position.y - cy;
+              const cDist = Math.sqrt(ddx * ddx + ddy * ddy);
+              if (cDist < 80) {
+                const proximity = 1 - cDist / 80;
+                const lift = proximity * proximity * 0.0009 * b.mass;
+                Matter.Body.applyForce(b, b.position, { x: 0, y: -lift });
+              }
             }
 
             // Idle tracking — how long has this phone been essentially still?
@@ -615,6 +647,8 @@ const PhoneSandbox = forwardRef<
       return () => {
         cancelAnimationFrame(rafRef.current);
         window.removeEventListener("resize", buildWalls);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerleave", onPointerLeave);
         Matter.Events.off(engine, "collisionStart", onCollision);
         Matter.Engine.clear(engine);
         engineRef.current = null;
