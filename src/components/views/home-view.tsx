@@ -128,7 +128,10 @@ export { LogoWithLabel };
 // ---------------------------------------------------------------------------
 // Media data — the pool the logo spits out
 // ---------------------------------------------------------------------------
-type MediaItem = { src: string; id: string; type: "video" | "image" };
+// ---------------------------------------------------------------------------
+// Media pools
+// ---------------------------------------------------------------------------
+type MediaItem = { src: string; id: string; type: "video" | "image"; raw?: boolean };
 
 const MESSENGER_MEDIA: MediaItem[] = [
   { src: "/mediapicker3.mp4", id: "picker", type: "video" },
@@ -145,6 +148,11 @@ const MESSENGER_MEDIA: MediaItem[] = [
   { src: "/messenger-screens/In-thread-1.png", id: "inthread1", type: "image" },
   { src: "/messenger-screens/image 403.png", id: "img403", type: "image" },
   { src: "/messenger-screens/image 405.png", id: "img405", type: "image" },
+];
+
+// MSL — confidential phone shell (transparent PNG with its own bezel)
+const MSL_MEDIA: MediaItem[] = [
+  { src: "/confidential.png", id: "confidential", type: "image", raw: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -166,6 +174,25 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
   }, [item.type]);
 
   const height = width * PHONE_ASPECT;
+
+  // Raw mode — transparent PNG that already includes its own phone bezel.
+  // Render the image straight through, no clipping container, no dark fill.
+  if (item.raw) {
+    return (
+      <img
+        src={item.src}
+        alt=""
+        className="pointer-events-none select-none"
+        draggable={false}
+        style={{
+          width,
+          height,
+          objectFit: "contain",
+          display: "block",
+        }}
+      />
+    );
+  }
 
   const media =
     item.type === "image" ? (
@@ -215,9 +242,9 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// MessengerFountain
-// Long-lived physics sandbox. Each spawnOne() call spits one random screen
-// out of the logo with a fresh trajectory.
+// PhoneFountain
+// Long-lived physics sandbox. Each spawnOne() call spits one screen out of
+// the configured origin with a fresh trajectory, cycling through the media.
 // ---------------------------------------------------------------------------
 const MAX_ITEMS = 60; // cap so long-press doesn't explode forever
 const MIN_WIDTH = 110;
@@ -232,14 +259,17 @@ type SpawnedItem = {
   dragOverride?: { angle: number } | null;
 };
 
-export type MessengerFountainHandle = {
+export type PhoneFountainHandle = {
   spawnOne: () => void;
   clearAll: () => void;
   count: () => number;
 };
 
-const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () => { x: number; y: number } }>(
-  function MessengerFountain({ getOrigin }, ref) {
+const PhoneFountain = forwardRef<
+  PhoneFountainHandle,
+  { getOrigin: () => { x: number; y: number }; media: MediaItem[] }
+>(
+  function PhoneFountain({ getOrigin, media }, ref) {
     // Frame-synced positions for every live item
     type Frame = { x: number; y: number; angle: number; scale: number; vy: number; vx: number; opacity: number };
     const [frames, setFrames] = useState<Record<number, Frame>>({});
@@ -405,10 +435,9 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
       const origin = getOrigin();
       const n = spawnCountRef.current++;
 
-      // Pick a random asset, varied size
       // Cycle through the media array in order so every screen appears
       // once before any repeats — no duplicate within a loop.
-      const mediaIndex = n % MESSENGER_MEDIA.length;
+      const mediaIndex = n % media.length;
       const width = MIN_WIDTH + Math.random() * (MAX_WIDTH - MIN_WIDTH);
       // Physics body matches the rendered phone exactly (iPhone 9:19.5 aspect)
       const height = width * PHONE_ASPECT;
@@ -446,7 +475,7 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
       };
       itemsRef.current.push(item);
       Matter.Composite.add(engine.world, body);
-    }, [getOrigin]);
+    }, [getOrigin, media]);
 
     const clearAll = useCallback(() => {
       if (itemsRef.current.length === 0) return;
@@ -547,7 +576,7 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
         {itemsRef.current.map((it) => {
           const f = frames[it.key];
           if (!f || f.scale < 0.02) return null;
-          const media = MESSENGER_MEDIA[it.mediaIndex];
+          const mediaItem = media[it.mediaIndex];
           const isDragging = draggingRef.current.has(it.key);
           return (
             <div
@@ -566,7 +595,7 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
               }}
               onPointerDown={(e) => startDrag(e, it.key)}
             >
-              <MediaElement item={media} width={it.width} />
+              <MediaElement item={mediaItem} width={it.width} />
             </div>
           );
         })}
@@ -589,34 +618,25 @@ const itemTransition = {
   opacity: { duration: 0.7, ease: [0.25, 0, 0, 1] as [number, number, number, number] },
 };
 
-export default function HomeView() {
-  const [ready, setReady] = useState(false);
-  const messengerRef = useRef<HTMLSpanElement>(null);
-  const fountainRef = useRef<MessengerFountainHandle>(null);
-  const kickControls = useAnimationControls();
+// Reusable: wires click + long-press on a logo to its fountain's spawnOne()
+// with a satisfying scale "kick" on the logo each time.
+function useLogoPressSpawner(params: {
+  ready: boolean;
+  logoRef: React.RefObject<HTMLElement | null>;
+  fountainRef: React.RefObject<PhoneFountainHandle | null>;
+  kickControls: ReturnType<typeof useAnimationControls>;
+}) {
+  const { ready, logoRef, fountainRef, kickControls } = params;
 
-  useEffect(() => {
-    preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
-  }, []);
-
-  // Live origin — always reads the logo's current screen position
-  const getOrigin = useCallback(() => {
-    const el = messengerRef.current;
-    if (!el) return { x: 0, y: 0 };
-    const rect = el.getBoundingClientRect();
-    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-  }, []);
-
-  // Click + long-press handling on the messenger logo
   useEffect(() => {
     if (!ready) return;
-    const el = messengerRef.current;
+    const el = logoRef.current;
     if (!el) return;
 
     let pressTimer: ReturnType<typeof setTimeout> | null = null;
     let streamInterval: ReturnType<typeof setInterval> | null = null;
     let streamAccel: ReturnType<typeof setInterval> | null = null;
-    let streamDelay = 110; // ms between spawns during long press, speeds up over time
+    let streamDelay = 110;
     let isLongPressing = false;
     let pointerDown = false;
     let pressPointerId: number | null = null;
@@ -630,7 +650,6 @@ export default function HomeView() {
 
     const startStream = () => {
       isLongPressing = true;
-      // Immediate kick
       fountainRef.current?.spawnOne();
       kick();
       const run = () => {
@@ -638,7 +657,6 @@ export default function HomeView() {
         kick();
       };
       streamInterval = setInterval(run, streamDelay);
-      // Gentle ramp: interval shortens over ~2s from 110ms → 55ms
       streamAccel = setInterval(() => {
         if (streamDelay > 55) {
           streamDelay -= 6;
@@ -681,7 +699,6 @@ export default function HomeView() {
         stopStream();
         isLongPressing = false;
       } else {
-        // Plain click — one single spit
         fountainRef.current?.spawnOne();
         kick();
       }
@@ -707,7 +724,50 @@ export default function HomeView() {
       if (pressTimer) clearTimeout(pressTimer);
       stopStream();
     };
-  }, [ready, kickControls]);
+  }, [ready, logoRef, fountainRef, kickControls]);
+}
+
+export default function HomeView() {
+  const [ready, setReady] = useState(false);
+
+  const messengerRef = useRef<HTMLSpanElement>(null);
+  const messengerFountainRef = useRef<PhoneFountainHandle>(null);
+  const messengerKick = useAnimationControls();
+
+  const mslRef = useRef<HTMLSpanElement>(null);
+  const mslFountainRef = useRef<PhoneFountainHandle>(null);
+  const mslKick = useAnimationControls();
+
+  useEffect(() => {
+    preloadImages(PRELOAD_IMAGES).then(() => setReady(true));
+  }, []);
+
+  const getMessengerOrigin = useCallback(() => {
+    const el = messengerRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }, []);
+
+  const getMslOrigin = useCallback(() => {
+    const el = mslRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }, []);
+
+  useLogoPressSpawner({
+    ready,
+    logoRef: messengerRef,
+    fountainRef: messengerFountainRef,
+    kickControls: messengerKick,
+  });
+  useLogoPressSpawner({
+    ready,
+    logoRef: mslRef,
+    fountainRef: mslFountainRef,
+    kickControls: mslKick,
+  });
 
   if (!ready) return null;
 
@@ -735,7 +795,7 @@ export default function HomeView() {
         Then <ExpressiveWord /> on{" "}
         <motion.span
           style={{ display: "inline-block", verticalAlign: "middle" }}
-          animate={kickControls}
+          animate={messengerKick}
         >
           <LogoWithLabel
             logoSrc="/messenger.png"
@@ -751,19 +811,35 @@ export default function HomeView() {
         </motion.span>
         <br />
         Now I&apos;m making them <SmartWord /> on{" "}
-        <LogoWithLabel
-          logoSrc="/metaai.png"
-          labelSrc="/msl-written.png"
-          logoAlt="Meta Superintelligence Labs"
-          labelAlt="MSL (Meta Superintelligence Labs)"
-          logoSize={28}
-          logoTop={-6}
-          labelWidth={202}
-          labelOffset={{ top: 36, left: -6 }}
-        />
+        <motion.span
+          style={{ display: "inline-block", verticalAlign: "middle" }}
+          animate={mslKick}
+        >
+          <LogoWithLabel
+            logoSrc="/metaai.png"
+            labelSrc="/msl-written.png"
+            logoAlt="Meta Superintelligence Labs"
+            labelAlt="MSL (Meta Superintelligence Labs)"
+            logoSize={28}
+            logoTop={-6}
+            labelWidth={202}
+            labelOffset={{ top: 36, left: -6 }}
+            logoRef={mslRef}
+            interactive
+          />
+        </motion.span>
       </motion.p>
 
-      <MessengerFountain ref={fountainRef} getOrigin={getOrigin} />
+      <PhoneFountain
+        ref={messengerFountainRef}
+        getOrigin={getMessengerOrigin}
+        media={MESSENGER_MEDIA}
+      />
+      <PhoneFountain
+        ref={mslFountainRef}
+        getOrigin={getMslOrigin}
+        media={MSL_MEDIA}
+      />
     </>
   );
 }
