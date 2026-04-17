@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useImperativeHandle, useMemo, useSyncExternalStore, forwardRef } from "react";
-import { animate, motion, useMotionValue } from "motion/react";
+import { AnimatePresence, animate, motion, useMotionValue } from "motion/react";
 import { createPortal } from "react-dom";
 import Matter from "matter-js";
 import SafeWord from "@/components/magic-words/safe-word";
@@ -839,6 +839,74 @@ const PhoneSandbox = forwardRef<
 // Silent preloader — mounts hidden videos so they buffer before the first
 // click. Without this, the first phone to spawn shows a black rectangle
 // while the video element fetches its bytes.
+// Reduced-motion showcase — no physics, no pile. Each logo click surfaces
+// one card at the bottom of the viewport; subsequent clicks cycle through
+// the media. Escape dismisses everything. Preserves the gag without motion.
+function QuietShowcase({
+  messengerItem,
+  mslItem,
+  onDismiss,
+}: {
+  messengerItem: MediaItem | null;
+  mslItem: MediaItem | null;
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onDismiss]);
+
+  const hasAny = !!messengerItem || !!mslItem;
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      aria-live="polite"
+      className="fixed left-1/2 bottom-10 z-50 flex items-end gap-6 pointer-events-none"
+      style={{ transform: "translateX(-50%)" }}
+    >
+      <AnimatePresence mode="popLayout">
+        {messengerItem && (
+          <motion.div
+            key={`m-${messengerItem.id}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
+          >
+            <MediaElement item={messengerItem} width={140} />
+          </motion.div>
+        )}
+        {mslItem && (
+          <motion.div
+            key={`ms-${mslItem.id}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
+          >
+            <MediaElement item={mslItem} width={140} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {hasAny && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="pointer-events-auto absolute -top-8 right-0 text-xs text-neutral-500 hover:text-neutral-900 transition-colors"
+          aria-label="Dismiss previews"
+        >
+          clear
+        </button>
+      )}
+    </div>,
+    document.body
+  );
+}
+
 // Tiny speaker toggle — bottom-right, barely there. Persists mute to
 // localStorage via the sfx module.
 function SoundToggle() {
@@ -949,8 +1017,9 @@ function useLogoPressSpawner(params: {
   ready: boolean;
   logoRef: React.RefObject<HTMLElement | null>;
   onSpawn: () => void;
+  reducedMotion?: boolean;
 }) {
-  const { ready, logoRef, onSpawn } = params;
+  const { ready, logoRef, onSpawn, reducedMotion } = params;
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -967,6 +1036,15 @@ function useLogoPressSpawner(params: {
     if (!ready) return;
     const el = logoRef.current;
     if (!el) return;
+
+    // Reduced-motion: a plain click fires the spawn. No animations, no
+    // long-press streaming — the motion values stay at their defaults and
+    // have no visible effect even though they're still wired to the span.
+    if (reducedMotion) {
+      const onClick = () => onSpawnRef.current();
+      el.addEventListener("click", onClick);
+      return () => el.removeEventListener("click", onClick);
+    }
 
     type State = "idle" | "pressed" | "streaming";
     let state: State = "idle";
@@ -1107,19 +1185,25 @@ function useLogoPressSpawner(params: {
       if (pressTimer) clearTimeout(pressTimer);
       stopStream();
     };
-  }, [ready, logoRef, x, y, scale, rotate]);
+  }, [ready, logoRef, reducedMotion, x, y, scale, rotate]);
 
   return { x, y, scale, rotate };
 }
 
 export default function HomeView() {
   const [ready, setReady] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   const messengerRef = useRef<HTMLSpanElement>(null);
   const mslRef = useRef<HTMLSpanElement>(null);
 
   const sandboxRef = useRef<PhoneSandboxHandle>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
+
+  // Reduced-motion showcase state: which media item is currently surfaced
+  // for each source, or null if nothing. Cycles forward on each click.
+  const [mShowIdx, setMShowIdx] = useState<number | null>(null);
+  const [msShowIdx, setMsShowIdx] = useState<number | null>(null);
 
   const getDragForbiddenRect = useCallback(
     () => textRef.current?.getBoundingClientRect() ?? null,
@@ -1155,16 +1239,38 @@ export default function HomeView() {
     [getMessengerOrigin, getMslOrigin]
   );
 
+  const onMessengerSpawn = useCallback(() => {
+    if (reducedMotion) {
+      setMShowIdx((i) => (i === null ? 0 : (i + 1) % MESSENGER_MEDIA.length));
+    } else {
+      sandboxRef.current?.spawn("messenger");
+    }
+  }, [reducedMotion]);
+  const onMslSpawn = useCallback(() => {
+    if (reducedMotion) {
+      setMsShowIdx(0);
+    } else {
+      sandboxRef.current?.spawn("msl");
+    }
+  }, [reducedMotion]);
+
   const messengerLogo = useLogoPressSpawner({
     ready,
     logoRef: messengerRef,
-    onSpawn: useCallback(() => sandboxRef.current?.spawn("messenger"), []),
+    onSpawn: onMessengerSpawn,
+    reducedMotion,
   });
   const mslLogo = useLogoPressSpawner({
     ready,
     logoRef: mslRef,
-    onSpawn: useCallback(() => sandboxRef.current?.spawn("msl"), []),
+    onSpawn: onMslSpawn,
+    reducedMotion,
   });
+
+  const dismissShowcase = useCallback(() => {
+    setMShowIdx(null);
+    setMsShowIdx(null);
+  }, []);
 
   if (!ready) return null;
 
@@ -1241,12 +1347,22 @@ export default function HomeView() {
       </motion.p>
 
       <MediaPreloader media={[...MESSENGER_MEDIA, ...MSL_MEDIA]} />
-      <PhoneSandbox
-        ref={sandboxRef}
-        sources={sources}
-        getDragForbiddenRect={getDragForbiddenRect}
-      />
-      <SoundToggle />
+      {reducedMotion ? (
+        <QuietShowcase
+          messengerItem={mShowIdx !== null ? MESSENGER_MEDIA[mShowIdx] : null}
+          mslItem={msShowIdx !== null ? MSL_MEDIA[msShowIdx] : null}
+          onDismiss={dismissShowcase}
+        />
+      ) : (
+        <>
+          <PhoneSandbox
+            ref={sandboxRef}
+            sources={sources}
+            getDragForbiddenRect={getDragForbiddenRect}
+          />
+          <SoundToggle />
+        </>
+      )}
     </>
   );
 }
