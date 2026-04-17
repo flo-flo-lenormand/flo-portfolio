@@ -146,6 +146,10 @@ type MediaItem = {
   type: "video" | "image";
   raw?: boolean;
   aspect?: number; // height / width, defaults to iPhone 9:19.5
+  // Optional inner zoom (> 1) to crop away baked-in whitespace/halo around
+  // the phone in a source asset. 1.00 = no change, 1.06 = 3% cropped on
+  // each side. Only applied to non-raw items.
+  crop?: number;
 };
 
 // Default aspect for items that don't specify one (iPhone 9:19.5 screen)
@@ -231,6 +235,16 @@ function MediaElement({
     );
   }
 
+  // Inner zoom to crop away source whitespace/halo. 1 = no change.
+  const crop = item.crop ?? 1;
+  const innerStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+    transform: crop !== 1 ? `scale(${crop})` : undefined,
+    transformOrigin: "center",
+  };
   const media =
     item.type === "image" ? (
       <img
@@ -238,12 +252,7 @@ function MediaElement({
         alt=""
         className="pointer-events-none select-none"
         draggable={false}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-        }}
+        style={innerStyle}
       />
     ) : (
       <video
@@ -253,12 +262,7 @@ function MediaElement({
         loop
         playsInline
         className="pointer-events-none select-none"
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-        }}
+        style={innerStyle}
       />
     );
 
