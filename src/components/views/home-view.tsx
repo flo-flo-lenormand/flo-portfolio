@@ -262,8 +262,56 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
 // regardless of which logo spawned them.
 // ---------------------------------------------------------------------------
 const MAX_ITEMS = 60; // total cap across all sources
-const MIN_WIDTH = 110;
-const MAX_WIDTH = 200;
+
+// Phone variants — different mass/size/bounciness so the pile develops rhythm.
+type Variant = "light" | "standard" | "heavy";
+type VariantProfile = {
+  widthMin: number;
+  widthMax: number;
+  density: number;
+  restitution: number;
+  friction: number;
+  frictionAir: number;
+  // Sound pitch in [0,1]; higher = brighter.
+  popPitch: number;
+  thudPitch: number;
+};
+const VARIANTS: Record<Variant, VariantProfile> = {
+  light: {
+    widthMin: 120, widthMax: 150,
+    density: 0.0018, restitution: 0.55,
+    friction: 0.06, frictionAir: 0.015,
+    popPitch: 0.80, thudPitch: 0.70,
+  },
+  standard: {
+    widthMin: 150, widthMax: 200,
+    density: 0.0026, restitution: 0.48,
+    friction: 0.08, frictionAir: 0.014,
+    popPitch: 0.50, thudPitch: 0.50,
+  },
+  heavy: {
+    widthMin: 180, widthMax: 220,
+    density: 0.0036, restitution: 0.32,
+    friction: 0.10, frictionAir: 0.013,
+    popPitch: 0.22, thudPitch: 0.28,
+  },
+};
+
+// Pick a variant biased by media type so the pile has editorial rhythm
+// without feeling random-generated.
+function pickVariant(item: MediaItem, rng: number): Variant {
+  if (item.raw) return "heavy"; // MSL confidential always carries weight
+  if (item.type === "video") {
+    // 50% standard, 30% heavy, 20% light
+    if (rng < 0.2) return "light";
+    if (rng < 0.7) return "standard";
+    return "heavy";
+  }
+  // images: 60% light, 20% standard, 20% heavy
+  if (rng < 0.6) return "light";
+  if (rng < 0.8) return "standard";
+  return "heavy";
+}
 
 type SandboxSource = {
   id: string;
@@ -277,9 +325,13 @@ type SpawnedItem = {
   mediaIndex: number;
   width: number;
   aspect: number;
+  variant: Variant;
   body: Matter.Body;
   bornAt: number;
   emerged: boolean; // once the phone has grown to full size it stays full-size
+  // Idle micro-motion: how long the phone has been essentially still.
+  idleMs: number;
+  idlePhase: number;
 };
 
 export type PhoneSandboxHandle = {
@@ -306,6 +358,9 @@ const PhoneSandbox = forwardRef<
       vx: number;
       vy: number;
       opacity: number;
+      // Micro-motion additive offsets — zero unless the phone has settled.
+      swayAngle: number;
+      breatheScale: number;
     };
     const [frames, setFrames] = useState<Record<number, Frame>>({});
     const itemsRef = useRef<SpawnedItem[]>([]);
@@ -364,6 +419,9 @@ const PhoneSandbox = forwardRef<
           const next: Record<number, Frame> = {};
           for (const it of itemsRef.current) {
             const b = it.body;
+            const speedLin = Math.sqrt(
+              b.velocity.x * b.velocity.x + b.velocity.y * b.velocity.y
+            );
 
             // Restoring torque — keeps phones in portrait orientation.
             // Minimal during fast motion, stronger as they settle.
@@ -371,10 +429,7 @@ const PhoneSandbox = forwardRef<
               let delta = b.angle;
               while (delta > Math.PI) delta -= Math.PI * 2;
               while (delta < -Math.PI) delta += Math.PI * 2;
-              const speed = Math.sqrt(
-                b.velocity.x * b.velocity.x + b.velocity.y * b.velocity.y
-              );
-              const settling = 1 - Math.min(1, speed / 8);
+              const settling = 1 - Math.min(1, speedLin / 8);
               const kTorque = 0.001 + 0.012 * settling;
               const aDamp = 0.994 - settling * 0.1;
               Matter.Body.setAngularVelocity(
@@ -382,6 +437,12 @@ const PhoneSandbox = forwardRef<
                 b.angularVelocity * aDamp - delta * kTorque
               );
             }
+
+            // Idle tracking — how long has this phone been essentially still?
+            const atRest =
+              speedLin < 0.25 && Math.abs(b.angularVelocity) < 0.01 && !b.isStatic;
+            if (atRest) it.idleMs += dt;
+            else it.idleMs = 0;
 
             // Scale: grows from 0 → 1 as the phone leaves the logo.
             // Once fully emerged, scale is permanently locked at 1 so it
@@ -412,6 +473,17 @@ const PhoneSandbox = forwardRef<
               opacity = scale;
             }
 
+            // Micro-motion: after 500ms of rest, start breathing.
+            // Ramp in over the next 400ms so it doesn't snap on.
+            let swayAngle = 0;
+            let breatheScale = 1;
+            if (it.idleMs > 500) {
+              const rampIn = Math.min(1, (it.idleMs - 500) / 400);
+              const t = (now / 1000 + it.idlePhase) * 0.9; // ~slow breath
+              swayAngle = Math.sin(t) * 0.015 * rampIn;
+              breatheScale = 1 + Math.sin(t * 1.3 + 0.7) * 0.006 * rampIn;
+            }
+
             next[it.key] = {
               x: b.position.x,
               y: b.position.y,
@@ -420,6 +492,8 @@ const PhoneSandbox = forwardRef<
               vx: b.velocity.x,
               vy: b.velocity.y,
               opacity,
+              swayAngle,
+              breatheScale,
             };
           }
           setFrames(next);
@@ -496,24 +570,30 @@ const PhoneSandbox = forwardRef<
       const mediaIndex = n % source.media.length;
       const mediaItem = source.media[mediaIndex];
       const aspect = itemAspect(mediaItem);
-      const width = MIN_WIDTH + Math.random() * (MAX_WIDTH - MIN_WIDTH);
+
+      // Pick variant — gives the pile editorial rhythm.
+      const variant = pickVariant(mediaItem, Math.random());
+      const profile = VARIANTS[variant];
+      const width = profile.widthMin + Math.random() * (profile.widthMax - profile.widthMin);
       const height = width * aspect;
       const cornerRadius = Math.max(18, width * 0.12);
 
       // Trajectory — walked through the golden ratio so every click is fresh.
+      // Heavy phones eject slightly slower (they thud sooner), light ones lift.
       const PHI = (1 + Math.sqrt(5)) / 2;
       const baseAngle = ((n * (1 / PHI)) % 1) * Math.PI * 2;
       const theta = -Math.PI / 2 + Math.sin(baseAngle) * (Math.PI * 0.55);
-      const speed = 16 + Math.random() * 10;
+      const speedBoost = variant === "light" ? 2.5 : variant === "heavy" ? -2.5 : 0;
+      const speed = 16 + Math.random() * 10 + speedBoost;
       const vx = Math.cos(theta) * speed + (Math.random() - 0.5) * 3;
       const vy = Math.sin(theta) * speed - 2;
 
       const body = Matter.Bodies.rectangle(origin.x, origin.y, width, height, {
-        density: 0.0026,
-        friction: 0.08,
-        frictionStatic: 0.1,
-        frictionAir: 0.014,
-        restitution: 0.48,
+        density: profile.density,
+        friction: profile.friction,
+        frictionStatic: profile.friction + 0.02,
+        frictionAir: profile.frictionAir,
+        restitution: profile.restitution,
         chamfer: { radius: cornerRadius },
         slop: 0.02,
         angle: (Math.random() - 0.5) * 0.25,
@@ -527,9 +607,12 @@ const PhoneSandbox = forwardRef<
         mediaIndex,
         width,
         aspect,
+        variant,
         body,
         bornAt: performance.now(),
         emerged: false,
+        idleMs: 0,
+        idlePhase: Math.random() * Math.PI * 2, // phase offset per phone — no sync-breathing
       });
       Matter.Composite.add(engine.world, body);
     }, []);
@@ -658,6 +741,21 @@ const PhoneSandbox = forwardRef<
           if (!source) return null;
           const mediaItem = source.media[it.mediaIndex];
           const isDragging = draggingRef.current.has(it.key);
+
+          // Velocity-driven shadow: grows when airborne, settles on landing.
+          const vMag = Math.min(36, Math.abs(f.vy));
+          const sy = 8 + vMag * 0.3;
+          const sb = 14 + vMag * 0.6;
+          const sa = 0.08 + vMag * 0.004;
+          // Raw (MSL confidential) PNGs already have their own bezel + shadow
+          // baked in — don't double-shadow them.
+          const filter = mediaItem.raw
+            ? undefined
+            : `drop-shadow(0 ${sy}px ${sb}px rgba(15, 20, 45, ${sa.toFixed(3)}))`;
+
+          const finalAngle = f.angle + f.swayAngle;
+          const finalScale = f.scale * f.breatheScale * (isDragging ? 1.04 : 1);
+
           return (
             <div
               key={it.key}
@@ -665,12 +763,13 @@ const PhoneSandbox = forwardRef<
               style={{
                 left: f.x,
                 top: f.y,
-                transform: `translate(-50%, -50%) rotate(${f.angle}rad) scale(${f.scale * (isDragging ? 1.04 : 1)})`,
+                transform: `translate(-50%, -50%) rotate(${finalAngle}rad) scale(${finalScale})`,
                 transformOrigin: "center center",
                 cursor: isDragging ? "grabbing" : "grab",
-                willChange: "transform, opacity",
+                willChange: "transform, opacity, filter",
                 opacity: f.opacity,
                 touchAction: "none",
+                filter,
                 transition: isDragging ? "transform 120ms cubic-bezier(.2,.9,.3,1.2)" : undefined,
               }}
               onPointerDown={(e) => startDrag(e, it.key)}
