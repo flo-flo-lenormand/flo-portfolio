@@ -341,6 +341,9 @@ type SpawnedItem = {
   // Idle micro-motion: how long the phone has been essentially still.
   idleMs: number;
   idlePhase: number;
+  // Hit-jiggle: timestamp of last significant impact; 0 if none.
+  hitAt: number;
+  hitIntensity: number;
 };
 
 export type PhoneSandboxHandle = {
@@ -370,6 +373,9 @@ const PhoneSandbox = forwardRef<
       // Micro-motion additive offsets — zero unless the phone has settled.
       swayAngle: number;
       breatheScale: number;
+      // Hit-jiggle — scaleY pulse in local (pre-rotation) frame. 1 unless
+      // within 140ms of a significant impact.
+      hitScaleY: number;
     };
     const [frames, setFrames] = useState<Record<number, Frame>>({});
     const itemsRef = useRef<SpawnedItem[]>([]);
@@ -437,6 +443,10 @@ const PhoneSandbox = forwardRef<
             const pitch = item ? VARIANTS[item.variant].thudPitch : 0.5;
             const intensity = Math.min(1, vy / 22);
             sfx.thud({ pitch, intensity });
+            if (item) {
+              item.hitAt = performance.now();
+              item.hitIntensity = intensity;
+            }
           } else if (!a.isStatic && !b.isStatic) {
             if (pair.collision.depth < 2) continue;
             const relVx = a.velocity.x - b.velocity.x;
@@ -448,6 +458,12 @@ const PhoneSandbox = forwardRef<
               pitch: 0.5 + (Math.random() - 0.5) * 0.35,
               intensity,
             });
+            // Hit-jiggle on both phones — quick local squash sells weight.
+            const itA = itemsRef.current.find((it) => it.body === a);
+            const itB = itemsRef.current.find((it) => it.body === b);
+            const now = performance.now();
+            if (itA) { itA.hitAt = now; itA.hitIntensity = intensity; }
+            if (itB) { itB.hitAt = now; itB.hitIntensity = intensity; }
           }
         }
       };
@@ -528,6 +544,20 @@ const PhoneSandbox = forwardRef<
               breatheScale = 1 + Math.sin(t * 1.3 + 0.7) * 0.006 * rampIn;
             }
 
+            // Hit-jiggle: scaleY pulse from 1 → 0.96 → 1 over 140ms,
+            // scaled by impact intensity. Applied in local (pre-rotation)
+            // frame so the phone squashes along its own height.
+            let hitScaleY = 1;
+            if (it.hitAt > 0) {
+              const age = now - it.hitAt;
+              if (age < 140) {
+                hitScaleY = 1 - Math.sin((age / 140) * Math.PI) * 0.05 * it.hitIntensity;
+              } else {
+                it.hitAt = 0;
+                it.hitIntensity = 0;
+              }
+            }
+
             next[it.key] = {
               x: b.position.x,
               y: b.position.y,
@@ -538,6 +568,7 @@ const PhoneSandbox = forwardRef<
               opacity,
               swayAngle,
               breatheScale,
+              hitScaleY,
             };
           }
           setFrames(next);
@@ -658,6 +689,8 @@ const PhoneSandbox = forwardRef<
         emerged: false,
         idleMs: 0,
         idlePhase: Math.random() * Math.PI * 2, // phase offset per phone — no sync-breathing
+        hitAt: 0,
+        hitIntensity: 0,
       });
       Matter.Composite.add(engine.world, body);
 
@@ -744,10 +777,20 @@ const PhoneSandbox = forwardRef<
         }
 
         Matter.Body.setPosition(body, { x: px, y: py });
-        Matter.Body.setAngle(body, body.angle * 0.92);
         history.push({ x: ev.clientX, y: ev.clientY, t: performance.now() });
         const cutoff = performance.now() - 90;
         while (history.length > 2 && history[0].t < cutoff) history.shift();
+
+        // Tilt the phone toward drag direction — like a card being carried.
+        // Uses a short window of cursor samples for a smooth, velocity-scaled
+        // lean that returns to zero when the cursor pauses.
+        if (history.length >= 2) {
+          const recent = history.slice(-4);
+          const span = recent[recent.length - 1].t - recent[0].t || 1;
+          const dvx = (recent[recent.length - 1].x - recent[0].x) / span; // px per ms
+          const target = Math.max(-0.24, Math.min(0.24, dvx * 18));
+          Matter.Body.setAngle(body, body.angle + (target - body.angle) * 0.28);
+        }
       };
 
       const onUp = (ev: PointerEvent) => {
@@ -794,11 +837,12 @@ const PhoneSandbox = forwardRef<
           const mediaItem = source.media[it.mediaIndex];
           const isDragging = draggingRef.current.has(it.key);
 
-          // Velocity-driven shadow: grows when airborne, settles on landing.
+          // Shadow: velocity-driven normally, bumped while held so the
+          // phone reads as "lifted off the surface".
           const vMag = Math.min(36, Math.abs(f.vy));
-          const sy = 8 + vMag * 0.3;
-          const sb = 14 + vMag * 0.6;
-          const sa = 0.08 + vMag * 0.004;
+          const sy = isDragging ? 18 : 8 + vMag * 0.3;
+          const sb = isDragging ? 34 : 14 + vMag * 0.6;
+          const sa = isDragging ? 0.22 : 0.08 + vMag * 0.004;
           // Raw (MSL confidential) PNGs already have their own bezel + shadow
           // baked in — don't double-shadow them.
           const filter = mediaItem.raw
@@ -806,7 +850,10 @@ const PhoneSandbox = forwardRef<
             : `drop-shadow(0 ${sy}px ${sb}px rgba(15, 20, 45, ${sa.toFixed(3)}))`;
 
           const finalAngle = f.angle + f.swayAngle;
-          const finalScale = f.scale * f.breatheScale * (isDragging ? 1.04 : 1);
+          const finalScale = f.scale * f.breatheScale * (isDragging ? 1.06 : 1);
+          // scaleY applied last (innermost) so the hit-jiggle squashes the
+          // phone in its own local frame, before rotation.
+          const scaleYStr = f.hitScaleY !== 1 ? ` scaleY(${f.hitScaleY.toFixed(3)})` : "";
 
           return (
             <div
@@ -815,14 +862,14 @@ const PhoneSandbox = forwardRef<
               style={{
                 left: f.x,
                 top: f.y,
-                transform: `translate(-50%, -50%) rotate(${finalAngle}rad) scale(${finalScale})`,
+                transform: `translate(-50%, -50%) rotate(${finalAngle}rad) scale(${finalScale})${scaleYStr}`,
                 transformOrigin: "center center",
                 cursor: isDragging ? "grabbing" : "grab",
                 willChange: "transform, opacity, filter",
                 opacity: f.opacity,
                 touchAction: "none",
                 filter,
-                transition: isDragging ? "transform 120ms cubic-bezier(.2,.9,.3,1.2)" : undefined,
+                transition: isDragging ? "transform 120ms cubic-bezier(.2,.9,.3,1.2), filter 140ms ease" : "filter 160ms ease",
               }}
               onPointerDown={(e) => startDrag(e, it.key)}
             >
