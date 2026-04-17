@@ -148,8 +148,10 @@ const MESSENGER_MEDIA: MediaItem[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// MediaElement
+// MediaElement — a phone-shaped card (iPhone 9:19.5 aspect)
 // ---------------------------------------------------------------------------
+const PHONE_ASPECT = 19.5 / 9; // height / width
+
 function MediaElement({ item, width }: { item: MediaItem; width: number }) {
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -163,28 +165,52 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
     };
   }, [item.type]);
 
-  if (item.type === "image") {
-    return (
+  const height = width * PHONE_ASPECT;
+
+  const media =
+    item.type === "image" ? (
       <img
         src={item.src}
         alt=""
-        className="rounded-xl pointer-events-none select-none"
+        className="pointer-events-none select-none"
         draggable={false}
-        style={{ width, height: "auto", display: "block" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+        }}
+      />
+    ) : (
+      <video
+        ref={ref}
+        src={item.src}
+        muted
+        loop
+        playsInline
+        className="pointer-events-none select-none"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+        }}
       />
     );
-  }
 
   return (
-    <video
-      ref={ref}
-      src={item.src}
-      muted
-      loop
-      playsInline
-      className="rounded-xl pointer-events-none select-none"
-      style={{ width, height: "auto", display: "block" }}
-    />
+    <div
+      className="pointer-events-none select-none"
+      style={{
+        width,
+        height,
+        borderRadius: Math.max(18, width * 0.12),
+        overflow: "hidden",
+        backgroundColor: "#0a0a0a",
+      }}
+    >
+      {media}
+    </div>
   );
 }
 
@@ -194,8 +220,8 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
 // out of the logo with a fresh trajectory.
 // ---------------------------------------------------------------------------
 const MAX_ITEMS = 60; // cap so long-press doesn't explode forever
-const MIN_WIDTH = 140;
-const MAX_WIDTH = 260;
+const MIN_WIDTH = 110;
+const MAX_WIDTH = 200;
 
 type SpawnedItem = {
   key: number;
@@ -384,24 +410,27 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
       // once before any repeats — no duplicate within a loop.
       const mediaIndex = n % MESSENGER_MEDIA.length;
       const width = MIN_WIDTH + Math.random() * (MAX_WIDTH - MIN_WIDTH);
-      const height = width * 1.75;
+      // Physics body matches the rendered phone exactly (iPhone 9:19.5 aspect)
+      const height = width * PHONE_ASPECT;
+      const cornerRadius = Math.max(18, width * 0.12);
 
-      // Trajectory: varied upward cone. Alternate sides; each click gets a fresh curve.
-      // Base angle walks around via golden ratio for visual variety.
+      // Trajectory: varied upward cone. Each click picks a fresh curve.
       const PHI = (1 + Math.sqrt(5)) / 2;
       const baseAngle = ((n * (1 / PHI)) % 1) * Math.PI * 2;
-      // Restrict to an upward 220° arc (-20° to -200° in screen coords)
       const theta = -Math.PI / 2 + Math.sin(baseAngle) * (Math.PI * 0.55);
       const speed = 16 + Math.random() * 10; // 16–26 px/frame
       const vx = Math.cos(theta) * speed + (Math.random() - 0.5) * 3;
       const vy = Math.sin(theta) * speed - 2; // small extra lift
 
       const body = Matter.Bodies.rectangle(origin.x, origin.y, width, height, {
-        density: 0.0024,
-        friction: 0.32,
-        frictionAir: 0.012,
-        restitution: 0.36,
-        chamfer: { radius: 14 },
+        density: 0.0026,
+        // Low friction between phones so they slip off each other and land
+        // beside each other instead of balancing on top.
+        friction: 0.08,
+        frictionStatic: 0.1,
+        frictionAir: 0.014,
+        restitution: 0.48,
+        chamfer: { radius: cornerRadius },
         slop: 0.02,
         angle: (Math.random() - 0.5) * 0.25,
       });
