@@ -152,7 +152,7 @@ const MESSENGER_MEDIA: MediaItem[] = [
 
 // MSL — confidential phone shell (transparent PNG with its own bezel)
 const MSL_MEDIA: MediaItem[] = [
-  { src: "/confidential.png", id: "confidential", type: "image", raw: true },
+  { src: "/confidential_phone_v3_transparent.png", id: "confidential", type: "image", raw: true },
 ];
 
 // ---------------------------------------------------------------------------
