@@ -380,7 +380,9 @@ const MessengerFountain = forwardRef<MessengerFountainHandle, { getOrigin: () =>
       const n = spawnCountRef.current++;
 
       // Pick a random asset, varied size
-      const mediaIndex = Math.floor(Math.random() * MESSENGER_MEDIA.length);
+      // Cycle through the media array in order so every screen appears
+      // once before any repeats — no duplicate within a loop.
+      const mediaIndex = n % MESSENGER_MEDIA.length;
       const width = MIN_WIDTH + Math.random() * (MAX_WIDTH - MIN_WIDTH);
       const height = width * 1.75;
 
