@@ -185,18 +185,31 @@ const itemAspect = (item: MediaItem) => item.aspect ?? PHONE_ASPECT;
 // ---------------------------------------------------------------------------
 // MediaElement — a phone-shaped card
 // ---------------------------------------------------------------------------
-function MediaElement({ item, width }: { item: MediaItem; width: number }) {
+function MediaElement({
+  item,
+  width,
+  audible = false,
+}: {
+  item: MediaItem;
+  width: number;
+  audible?: boolean;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (item.type === "video" && el) {
+      el.muted = !audible;
+      if (audible) {
+        // Inspection: restart from the top so the user sees the whole flow.
+        try { el.currentTime = 0; } catch { /* ignore */ }
+      }
       el.play().catch(() => {});
     }
     return () => {
       if (el) el.pause();
     };
-  }, [item.type]);
+  }, [item.type, audible]);
 
   const height = width * itemAspect(item);
 
@@ -236,7 +249,7 @@ function MediaElement({ item, width }: { item: MediaItem; width: number }) {
       <video
         ref={ref}
         src={item.src}
-        muted
+        muted={!audible}
         loop
         playsInline
         className="pointer-events-none select-none"
@@ -386,6 +399,10 @@ const PhoneSandbox = forwardRef<
     const rafRef = useRef(0);
     const draggingRef = useRef<Set<number>>(new Set());
     const implodingRef = useRef(false);
+    // Inspection mode: which phone (by key) is currently shown enlarged,
+    // or null. The phone's body is frozen in place while inspected so it
+    // doesn't fall out of the pile during the animation.
+    const [inspectedKey, setInspectedKey] = useState<number | null>(null);
     // Hover magnetism — tracked globally, applied per-frame.
     // -1,-1 means cursor has left the viewport (no force).
     const cursorRef = useRef<{ x: number; y: number }>({ x: -9999, y: -9999 });
@@ -743,16 +760,50 @@ const PhoneSandbox = forwardRef<
 
     const count = useCallback(() => itemsRef.current.length, []);
 
+    const openInspection = useCallback((key: number) => {
+      const item = itemsRef.current.find((it) => it.key === key);
+      if (!item) return;
+      implodingRef.current = false;
+      // Freeze the body so it doesn't drift out of the pile while enlarged.
+      Matter.Body.setStatic(item.body, true);
+      Matter.Body.setAngularVelocity(item.body, 0);
+      Matter.Body.setVelocity(item.body, { x: 0, y: 0 });
+      setInspectedKey(key);
+    }, []);
+
+    const closeInspection = useCallback(() => {
+      setInspectedKey((key) => {
+        if (key === null) return null;
+        const item = itemsRef.current.find((it) => it.key === key);
+        if (item) {
+          Matter.Body.setStatic(item.body, false);
+          // Gentle re-entry — small downward nudge so gravity resumes
+          // cleanly without an abrupt pop.
+          Matter.Body.setVelocity(item.body, { x: 0, y: 0.3 });
+        }
+        return null;
+      });
+    }, []);
+
+    // Allow startDrag (defined below) to call openInspection without a
+    // forward-reference dance — stable ref.
+    const openInspectionRef = useRef(openInspection);
+    useEffect(() => {
+      openInspectionRef.current = openInspection;
+    }, [openInspection]);
+
     useImperativeHandle(ref, () => ({ spawn, clearAll, count }), [spawn, clearAll, count]);
 
-    // ---- Escape to clear ----
+    // ---- Escape: close inspection first, then clear pile ----
     useEffect(() => {
       const onKey = (e: KeyboardEvent) => {
-        if (e.key === "Escape") clearAll();
+        if (e.key !== "Escape") return;
+        if (inspectedKey !== null) closeInspection();
+        else clearAll();
       };
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
-    }, [clearAll]);
+    }, [clearAll, closeInspection, inspectedKey]);
 
     // ---- Drag handlers (pointer events for touch + mouse + pen) ----
     const startDrag = useCallback((e: React.PointerEvent, key: number) => {
@@ -840,7 +891,23 @@ const PhoneSandbox = forwardRef<
 
         const first = history[0];
         const lastSample = history[history.length - 1];
-        const dt = Math.max(16, lastSample.t - first.t);
+        const totalDist = Math.sqrt(
+          (lastSample.x - first.x) ** 2 + (lastSample.y - first.y) ** 2
+        );
+        const duration = lastSample.t - first.t;
+        const wasClick = totalDist < 6 && duration < 260;
+
+        if (wasClick) {
+          // Unfreeze and hand off to inspection. The body is immediately
+          // re-frozen by openInspection so it doesn't fall mid-animation.
+          Matter.Body.setStatic(body, false);
+          draggingRef.current.delete(key);
+          openInspectionRef.current(key);
+          return;
+        }
+
+        // Normal drag release — throw with the averaged cursor velocity.
+        const dt = Math.max(16, duration);
         const vx = ((lastSample.x - first.x) / dt) * 16;
         const vy = ((lastSample.y - first.y) / dt) * 16;
 
@@ -867,9 +934,23 @@ const PhoneSandbox = forwardRef<
     const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
     const parallaxY = -scrollY * 0.15;
 
+    // Find the inspected item's media (if any) for the panel below.
+    const inspectedItem =
+      inspectedKey !== null
+        ? itemsRef.current.find((it) => it.key === inspectedKey)
+        : null;
+    const inspectedSource = inspectedItem
+      ? sources.find((s) => s.id === inspectedItem.sourceId)
+      : null;
+    const inspectedMedia = inspectedItem && inspectedSource
+      ? inspectedSource.media[inspectedItem.mediaIndex]
+      : null;
+
     return createPortal(
       <>
         {itemsRef.current.map((it) => {
+          // The inspected phone is rendered by InspectionPanel instead.
+          if (it.key === inspectedKey) return null;
           const f = frames[it.key];
           if (!f || f.scale < 0.02) return null;
           const source = sources.find((s) => s.id === it.sourceId);
@@ -896,8 +977,9 @@ const PhoneSandbox = forwardRef<
           const scaleYStr = f.hitScaleY !== 1 ? ` scaleY(${f.hitScaleY.toFixed(3)})` : "";
 
           return (
-            <div
+            <motion.div
               key={it.key}
+              layoutId={`phone-${it.key}`}
               className="fixed z-50 select-none"
               style={{
                 left: f.x,
@@ -914,14 +996,78 @@ const PhoneSandbox = forwardRef<
               onPointerDown={(e) => startDrag(e, it.key)}
             >
               <MediaElement item={mediaItem} width={it.width} />
-            </div>
+            </motion.div>
           );
         })}
+        <AnimatePresence>
+          {inspectedKey !== null && inspectedItem && inspectedMedia && (
+            <InspectionPanel
+              key="inspect"
+              layoutId={`phone-${inspectedKey}`}
+              item={inspectedMedia}
+              onClose={closeInspection}
+            />
+          )}
+        </AnimatePresence>
       </>,
       document.body
     );
   }
 );
+
+// Inspection panel — shown when a phone in the pile is single-tapped.
+// Uses shared layoutId with the pile phone so motion performs a smooth
+// FLIP from its in-pile position to the centered frame and back.
+function InspectionPanel({
+  item,
+  layoutId,
+  onClose,
+}: {
+  item: MediaItem;
+  layoutId: string;
+  onClose: () => void;
+}) {
+  // Fit the phone to the viewport with generous padding. Phone aspect is
+  // height/width, so compute the largest rectangle that fits both bounds.
+  const aspect = itemAspect(item);
+  const availH = typeof window !== "undefined" ? window.innerHeight - 120 : 720;
+  const availW = typeof window !== "undefined" ? window.innerWidth - 80 : 400;
+  const fromHeight = { w: availH / aspect, h: availH };
+  const fromWidth = { w: availW, h: availW * aspect };
+  const fit = fromWidth.h <= availH ? fromWidth : fromHeight;
+
+  return (
+    <>
+      {/* Dim backdrop; click to dismiss. */}
+      <motion.div
+        className="fixed inset-0 z-[54]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+        style={{ backgroundColor: "rgba(0,0,0,0.62)", backdropFilter: "blur(2px)" }}
+        onClick={onClose}
+      />
+      {/* The centered phone — shares layoutId with its pile counterpart so
+          motion animates the swap. */}
+      <motion.div
+        layoutId={layoutId}
+        className="fixed z-[55] select-none"
+        style={{
+          top: "50%",
+          left: "50%",
+          translate: "-50% -50%",
+          width: fit.w,
+          filter: "drop-shadow(0 30px 60px rgba(15, 20, 45, 0.28))",
+        }}
+        transition={{ type: "spring", stiffness: 260, damping: 32 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MediaElement item={item} width={fit.w} audible />
+      </motion.div>
+    </>
+  );
+}
 
 // Silent preloader — mounts hidden videos so they buffer before the first
 // click. Without this, the first phone to spawn shows a black rectangle
