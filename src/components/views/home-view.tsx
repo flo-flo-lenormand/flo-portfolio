@@ -895,7 +895,8 @@ const PhoneSandbox = forwardRef<
           (lastSample.x - first.x) ** 2 + (lastSample.y - first.y) ** 2
         );
         const duration = lastSample.t - first.t;
-        const wasClick = totalDist < 6 && duration < 260;
+        // Tight thresholds so any real drag is never mistaken for a click.
+        const wasClick = totalDist < 3 && duration < 220;
 
         if (wasClick) {
           // Unfreeze and hand off to inspection. The body is immediately
@@ -977,9 +978,8 @@ const PhoneSandbox = forwardRef<
           const scaleYStr = f.hitScaleY !== 1 ? ` scaleY(${f.hitScaleY.toFixed(3)})` : "";
 
           return (
-            <motion.div
+            <div
               key={it.key}
-              layoutId={`phone-${it.key}`}
               className="fixed z-50 select-none"
               style={{
                 left: f.x,
@@ -996,14 +996,13 @@ const PhoneSandbox = forwardRef<
               onPointerDown={(e) => startDrag(e, it.key)}
             >
               <MediaElement item={mediaItem} width={it.width} />
-            </motion.div>
+            </div>
           );
         })}
         <AnimatePresence>
           {inspectedKey !== null && inspectedItem && inspectedMedia && (
             <InspectionPanel
               key="inspect"
-              layoutId={`phone-${inspectedKey}`}
               item={inspectedMedia}
               onClose={closeInspection}
             />
@@ -1016,19 +1015,18 @@ const PhoneSandbox = forwardRef<
 );
 
 // Inspection panel — shown when a phone in the pile is single-tapped.
-// Uses shared layoutId with the pile phone so motion performs a smooth
-// FLIP from its in-pile position to the centered frame and back.
+// Renders a centered enlarged view behind a dim backdrop. Animation is a
+// simple scale+fade in/out to keep the pile rendering untouched (motion's
+// layout system doesn't play well with elements whose transform updates
+// every frame).
 function InspectionPanel({
   item,
-  layoutId,
   onClose,
 }: {
   item: MediaItem;
-  layoutId: string;
   onClose: () => void;
 }) {
-  // Fit the phone to the viewport with generous padding. Phone aspect is
-  // height/width, so compute the largest rectangle that fits both bounds.
+  // Fit the phone to the viewport with generous padding.
   const aspect = itemAspect(item);
   const availH = typeof window !== "undefined" ? window.innerHeight - 120 : 720;
   const availW = typeof window !== "undefined" ? window.innerWidth - 80 : 400;
@@ -1038,7 +1036,6 @@ function InspectionPanel({
 
   return (
     <>
-      {/* Dim backdrop; click to dismiss. */}
       <motion.div
         className="fixed inset-0 z-[54]"
         initial={{ opacity: 0 }}
@@ -1048,11 +1045,12 @@ function InspectionPanel({
         style={{ backgroundColor: "rgba(0,0,0,0.62)", backdropFilter: "blur(2px)" }}
         onClick={onClose}
       />
-      {/* The centered phone — shares layoutId with its pile counterpart so
-          motion animates the swap. */}
       <motion.div
-        layoutId={layoutId}
         className="fixed z-[55] select-none"
+        initial={{ opacity: 0, scale: 0.82 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        transition={{ type: "spring", stiffness: 320, damping: 28 }}
         style={{
           top: "50%",
           left: "50%",
@@ -1060,7 +1058,6 @@ function InspectionPanel({
           width: fit.w,
           filter: "drop-shadow(0 30px 60px rgba(15, 20, 45, 0.28))",
         }}
-        transition={{ type: "spring", stiffness: 260, damping: 32 }}
         onClick={(e) => e.stopPropagation()}
       >
         <MediaElement item={item} width={fit.w} audible />
