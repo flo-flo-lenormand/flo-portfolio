@@ -91,16 +91,17 @@ const TEST_SOURCES = [
   "/messenger-screens/exploration01.mp4",
 ];
 
-// Crop values × origins to compare.
+// Crop values × origins to compare. Lower scales = less zoom, more of
+// the source visible. 1.00 means no extra zoom beyond object-fit: cover.
 const CONFIGS: { crop: number; cropOrigin: string; label: string }[] = [
-  { crop: 1.12, cropOrigin: "center", label: "A · 1.12 · center" },
-  { crop: 1.17, cropOrigin: "center", label: "B · 1.17 · center" },
-  { crop: 1.22, cropOrigin: "center", label: "C · 1.22 · center" },
-  { crop: 1.28, cropOrigin: "center", label: "D · 1.28 · center" },
-  { crop: 1.12, cropOrigin: "50% 100%", label: "E · 1.12 · bottom" },
-  { crop: 1.17, cropOrigin: "50% 100%", label: "F · 1.17 · bottom" },
-  { crop: 1.22, cropOrigin: "50% 100%", label: "G · 1.22 · bottom" },
-  { crop: 1.28, cropOrigin: "50% 100%", label: "H · 1.28 · bottom" },
+  { crop: 1.0, cropOrigin: "center", label: "A · 1.00 · center" },
+  { crop: 1.04, cropOrigin: "center", label: "B · 1.04 · center" },
+  { crop: 1.08, cropOrigin: "center", label: "C · 1.08 · center" },
+  { crop: 1.12, cropOrigin: "center", label: "D · 1.12 · center" },
+  { crop: 1.0, cropOrigin: "50% 100%", label: "E · 1.00 · bottom" },
+  { crop: 1.04, cropOrigin: "50% 100%", label: "F · 1.04 · bottom" },
+  { crop: 1.08, cropOrigin: "50% 100%", label: "G · 1.08 · bottom" },
+  { crop: 1.12, cropOrigin: "50% 100%", label: "H · 1.12 · bottom" },
 ];
 
 export default function CropTest() {
