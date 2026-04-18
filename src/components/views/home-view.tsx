@@ -164,6 +164,10 @@ type MediaItem = {
   // Optional size override (in px). Replaces the variant's width range
   // for this item — useful for content that needs extra space to read.
   widthRange?: [number, number];
+  // Optional rounded-corner override (in px). Defaults to
+  // max(18, width * 0.12) — tuned for iPhone-style screens. Article
+  // cards or non-phone items can dial it down.
+  cornerRadius?: number;
 };
 
 // Default aspect for items that don't specify one (iPhone 9:19.5 screen)
@@ -222,6 +226,7 @@ const MSL_MEDIA: MediaItem[] = [
 // file dimensions (not phone-shaped — they're design cards). Sized up
 // (widthRange 280-360) so the article headlines are readable in the pile.
 const IG_WIDTH: [number, number] = [280, 360];
+const IG_CORNER = 14; // article-card rounding, not phone rounding
 const INSTAGRAM_MEDIA: MediaItem[] = [
   {
     src: "/safety-screens/Screenshot 2026-04-13 at 16.31.02.png",
@@ -229,6 +234,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1744 / 1562,
     widthRange: IG_WIDTH,
+    cornerRadius: IG_CORNER,
     link: "https://about.fb.com/news/2024/04/new-tools-to-help-protect-against-sextortion-and-intimate-image-abuse/",
   },
   {
@@ -237,6 +243,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1780 / 1552,
     widthRange: IG_WIDTH,
+    cornerRadius: IG_CORNER,
     link: "https://about.fb.com/news/2023/06/parental-supervision-and-teen-time-management-on-metas-apps/",
   },
   {
@@ -245,6 +252,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1862 / 1538,
     widthRange: IG_WIDTH,
+    cornerRadius: IG_CORNER,
     link: "https://www.theverge.com/2023/8/3/23818552/instagram-dm-request-spam-limit",
   },
   {
@@ -253,6 +261,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1916 / 1554,
     widthRange: IG_WIDTH,
+    cornerRadius: IG_CORNER,
     link: "https://about.fb.com/news/2022/10/protecting-people-on-instagram-from-abuse/",
   },
 ];
@@ -395,13 +404,14 @@ function MediaElement({
     );
   }
 
+  const corner = item.cornerRadius ?? Math.max(18, width * 0.12);
   return (
     <div
       className="pointer-events-none select-none"
       style={{
         width,
         height,
-        borderRadius: Math.max(18, width * 0.12),
+        borderRadius: corner,
         overflow: "hidden",
       }}
     >
