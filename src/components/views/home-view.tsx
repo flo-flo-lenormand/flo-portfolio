@@ -212,11 +212,11 @@ const MESSENGER_MEDIA: MediaItem[] = [
 // Actual image is 1536x2752 → aspect 1.792.
 const MSL_MEDIA: MediaItem[] = [
   {
-    src: "/confidential_phone_v3_transparent.png",
+    src: "/confidential_phone.png",
     id: "confidential",
     type: "image",
     raw: true,
-    aspect: 2752 / 1536,
+    aspect: 5504 / 3072,
   },
 ];
 
