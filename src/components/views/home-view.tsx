@@ -324,7 +324,7 @@ function MediaElement({
   // Shelled videos usually have a baked-in device frame in the recording,
   // so they need an aggressive default crop to hide that inner shell and
   // show just the screen content inside our shell's screen cutout.
-  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.32 : 1);
+  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.22 : 1);
   // Shelled videos keep a centered crop so both top and bottom are
   // trimmed equally. Individual items can override cropOrigin if needed.
   const cropOrigin = item.cropOrigin ?? "center";
