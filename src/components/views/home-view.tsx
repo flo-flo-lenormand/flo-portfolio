@@ -1054,6 +1054,10 @@ const PhoneSandbox = forwardRef<
       Matter.Body.setAngularVelocity(body, 0);
       Matter.Body.setVelocity(body, { x: 0, y: 0 });
       draggingRef.current.add(key);
+      // Lock text-selection + set grabbing cursor site-wide while dragging
+      // so the browser doesn't flip to a text caret over any stray element.
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "grabbing";
 
       const offsetX = e.clientX - body.position.x;
       const offsetY = e.clientY - body.position.y;
@@ -1118,6 +1122,9 @@ const PhoneSandbox = forwardRef<
         } catch {
           /* ignore */
         }
+        // Restore page-wide selection + cursor regardless of exit path.
+        document.body.style.userSelect = "";
+        document.body.style.cursor = "";
 
         const first = history[0];
         const lastSample = history[history.length - 1];

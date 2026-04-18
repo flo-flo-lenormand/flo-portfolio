@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Caveat } from "next/font/google";
 import "./globals.css";
 
@@ -14,16 +14,33 @@ const caveat = Caveat({
   variable: "--font-caveat-var",
 });
 
+const description =
+  "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.";
+
 export const metadata: Metadata = {
-  title: "Flo",
-  description:
-    "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.",
+  title: "Flo Lenormand",
+  description,
   openGraph: {
-    title: "Flo",
-    description:
-      "I made conversations safe on Instagram. Then expressive on Messenger. Now I'm making them smart, designing AI agents at Meta Superintelligence Labs.",
+    title: "Flo Lenormand",
+    description,
     type: "website",
+    siteName: "Flo Lenormand",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Flo Lenormand",
+    description,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Lock scaling so the physics sandbox's viewport-relative math isn't
+  // thrown off by pinch-zoom mid-interaction. Art-piece tradeoff.
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
