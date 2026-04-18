@@ -1823,8 +1823,14 @@ export default function HomeView() {
     <>
       <motion.p
         ref={textRef}
-        className="text-[18px] sm:text-[22px] font-medium leading-normal text-black text-center"
-        style={{ width: "100%" }}
+        className="text-[18px] sm:text-[22px] font-medium leading-normal text-black text-left"
+        style={{
+          // Shrink the block to the width of its longest line, then center
+          // the whole block horizontally. Text stays left-aligned inside.
+          width: "fit-content",
+          maxWidth: "100%",
+          marginInline: "auto",
+        }}
         variants={itemVariants}
         initial="hidden"
         animate="visible"
