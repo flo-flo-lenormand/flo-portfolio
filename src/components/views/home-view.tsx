@@ -1198,6 +1198,14 @@ const PhoneSandbox = forwardRef<
         const vx = ((lastSample.x - first.x) / dt) * 16;
         const vy = ((lastSample.y - first.y) / dt) * 16;
 
+        // Flick-to-clear: a fast-downward release near the bottom of the
+        // viewport sweeps every phone home. "I just brushed them all off."
+        const viewportH =
+          typeof window !== "undefined" ? window.innerHeight : 800;
+        const releasedLow = lastSample.y > viewportH * 0.7;
+        const flickedDown = vy > 20;
+        const flickToClear = releasedLow && flickedDown;
+
         Matter.Body.setStatic(body, false);
         Matter.Body.setVelocity(body, {
           x: Math.max(-30, Math.min(30, vx)),
@@ -1205,6 +1213,8 @@ const PhoneSandbox = forwardRef<
         });
         Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.08);
         draggingRef.current.delete(key);
+
+        if (flickToClear) clearAll();
       };
 
       target.addEventListener("pointermove", onMove);
@@ -1813,7 +1823,7 @@ export default function HomeView() {
     <>
       <motion.p
         ref={textRef}
-        className="text-[18px] sm:text-[22px] font-medium leading-normal text-black"
+        className="text-[18px] sm:text-[22px] font-medium leading-normal text-black text-center"
         style={{ width: "100%" }}
         variants={itemVariants}
         initial="hidden"
