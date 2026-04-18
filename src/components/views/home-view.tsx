@@ -426,7 +426,20 @@ function MediaElement({
 // MSL, …). All items live in the same world so they collide with each other
 // regardless of which logo spawned them.
 // ---------------------------------------------------------------------------
-const MAX_ITEMS = 60; // total cap across all sources
+// Responsive caps — narrow viewports get fewer, smaller phones so the
+// pile never dominates the text.
+const MOBILE_BREAKPOINT = 640; // px — below this we scale down aggressively
+function getViewportScale() {
+  if (typeof window === "undefined") return 1;
+  const w = window.innerWidth;
+  if (w >= MOBILE_BREAKPOINT) return 1;
+  if (w >= 420) return 0.78;
+  return 0.62;
+}
+function getItemCap() {
+  if (typeof window === "undefined") return 60;
+  return window.innerWidth >= MOBILE_BREAKPOINT ? 60 : 28;
+}
 
 // Phone variants — different mass/size/bounciness so the pile develops rhythm.
 type Variant = "light" | "standard" | "heavy";
@@ -894,7 +907,7 @@ const PhoneSandbox = forwardRef<
 
       if (implodingRef.current) implodingRef.current = false;
 
-      if (itemsRef.current.length >= MAX_ITEMS) {
+      if (itemsRef.current.length >= getItemCap()) {
         const oldest = itemsRef.current.shift();
         if (oldest) Matter.Composite.remove(engine.world, oldest.body);
       }
@@ -913,7 +926,11 @@ const PhoneSandbox = forwardRef<
       const profile = VARIANTS[variant];
       // Per-item widthRange wins over the variant's range. Used when an
       // item has text that needs to be readable (e.g. article headlines).
-      const [wMin, wMax] = mediaItem.widthRange ?? [profile.widthMin, profile.widthMax];
+      // Scale down on narrow viewports so phones don't dominate the screen.
+      const vScale = getViewportScale();
+      const [rawMin, rawMax] = mediaItem.widthRange ?? [profile.widthMin, profile.widthMax];
+      const wMin = rawMin * vScale;
+      const wMax = rawMax * vScale;
       const width = wMin + Math.random() * (wMax - wMin);
       const height = width * aspect;
       const cornerRadius = Math.max(18, width * 0.12);
@@ -1155,12 +1172,6 @@ const PhoneSandbox = forwardRef<
     if (typeof document === "undefined") return null;
     if (Object.keys(frames).length === 0 && !implodingRef.current) return null;
 
-    // Scroll parallax — phones render offset against scroll at 15% rate, so
-    // they feel like they sit on a deeper layer than the text. Physics bodies
-    // stay in stable coords; we just translate the visual position at render.
-    const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
-    const parallaxY = -scrollY * 0.15;
-
     // Find the inspected item's media (if any) for the panel below.
     const inspectedItem =
       inspectedKey !== null
@@ -1209,7 +1220,7 @@ const PhoneSandbox = forwardRef<
               className="fixed z-50 select-none"
               style={{
                 left: f.x,
-                top: f.y + parallaxY,
+                top: f.y,
                 transform: `translate(-50%, -50%) rotate(${finalAngle}rad) scale(${finalScale})${scaleYStr}`,
                 transformOrigin: "center center",
                 cursor: isDragging ? "grabbing" : "grab",
@@ -1757,8 +1768,8 @@ export default function HomeView() {
     <>
       <motion.p
         ref={textRef}
-        className="text-[22px] font-medium leading-normal text-black"
-        style={{ width: 460 }}
+        className="text-[18px] sm:text-[22px] font-medium leading-normal text-black"
+        style={{ width: "100%" }}
         variants={itemVariants}
         initial="hidden"
         animate="visible"

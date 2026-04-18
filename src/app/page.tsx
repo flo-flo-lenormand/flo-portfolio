@@ -2,8 +2,8 @@ import HomeView from "@/components/views/home-view";
 
 export default function Page() {
   return (
-    <div className="h-screen flex items-center justify-center px-6 overflow-hidden">
-      <div style={{ width: 460 }}>
+    <div className="flex items-center justify-center overflow-hidden px-4 sm:px-6" style={{ height: "100svh" }}>
+      <div className="w-full" style={{ maxWidth: 460 }}>
         <HomeView />
       </div>
     </div>
