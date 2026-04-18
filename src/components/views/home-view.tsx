@@ -151,12 +151,19 @@ type MediaItem = {
   // the phone in a source asset. 1.00 = no change, 1.06 = 3% cropped on
   // each side. Only applied to non-raw items.
   crop?: number;
+  // Where the crop "anchors" — CSS transform-origin value. Defaults to
+  // "center" for most items; shelled videos default to "50% 100%" so that
+  // any whitespace above the content gets cropped first.
+  cropOrigin?: string;
   // When true, render the media inside the /phoneshell.png device frame.
   // The physics body is sized to the shell aspect (1.97), not the screen.
   shell?: boolean;
   // If set, single-click on a spawned phone opens this URL in a new tab
   // instead of opening the inspection panel.
   link?: string;
+  // Optional size override (in px). Replaces the variant's width range
+  // for this item — useful for content that needs extra space to read.
+  widthRange?: [number, number];
 };
 
 // Default aspect for items that don't specify one (iPhone 9:19.5 screen)
@@ -182,13 +189,19 @@ const MESSENGER_MEDIA: MediaItem[] = [
   { src: "/messenger-screens/exploration01.mp4", id: "explore1", type: "video", shell: true },
   { src: "/messenger-screens/exploration02.mp4", id: "explore2", type: "video", shell: true },
   { src: "/messenger-screens/exploration03.mp4", id: "explore3", type: "video", shell: true },
-  // PNGs already look clean — leave them edge-to-edge.
-  { src: "/messenger-screens/03.png", id: "screen03", type: "image" },
-  { src: "/messenger-screens/04.png", id: "screen04", type: "image" },
-  { src: "/messenger-screens/In-thread.png", id: "inthread", type: "image" },
-  { src: "/messenger-screens/In-thread-1.png", id: "inthread1", type: "image" },
-  { src: "/messenger-screens/image 403.png", id: "img403", type: "image" },
-  { src: "/messenger-screens/image 405.png", id: "img405", type: "image" },
+  // PNGs already look clean — leave them edge-to-edge. Their natural
+  // aspect is 2.044 (1350x2760 / 1284x2624), slightly shorter than the
+  // iPhone-screen default, so we pin it explicitly.
+  { src: "/messenger-screens/03.png", id: "screen03", type: "image", aspect: 2760 / 1350 },
+  { src: "/messenger-screens/04.png", id: "screen04", type: "image", aspect: 2760 / 1350 },
+  { src: "/messenger-screens/In-thread.png", id: "inthread", type: "image", aspect: 2760 / 1350 },
+  { src: "/messenger-screens/In-thread-1.png", id: "inthread1", type: "image", aspect: 2760 / 1350 },
+  { src: "/messenger-screens/image 403.png", id: "img403", type: "image", aspect: 2760 / 1350 },
+  { src: "/messenger-screens/image 405.png", id: "img405", type: "image", aspect: 2760 / 1350 },
+  // Extra Messenger-style screenshots kept in safety-screens/ for now.
+  { src: "/safety-screens/image 409.png", id: "img409", type: "image", aspect: 2624 / 1284 },
+  { src: "/safety-screens/image 410.png", id: "img410", type: "image", aspect: 2624 / 1284 },
+  { src: "/safety-screens/image 411.png", id: "img411", type: "image", aspect: 2624 / 1284 },
 ];
 
 // MSL — confidential phone shell (transparent PNG with its own bezel).
@@ -206,13 +219,16 @@ const MSL_MEDIA: MediaItem[] = [
 // Instagram — safety-work screens, each linking to the corresponding
 // published article. Clicking a spawned screen opens the article in a
 // new tab instead of the inspection panel. Aspects come from the actual
-// file dimensions (not phone-shaped — they're design cards).
+// file dimensions (not phone-shaped — they're design cards). Sized up
+// (widthRange 280-360) so the article headlines are readable in the pile.
+const IG_WIDTH: [number, number] = [280, 360];
 const INSTAGRAM_MEDIA: MediaItem[] = [
   {
     src: "/safety-screens/Screenshot 2026-04-13 at 16.31.02.png",
     id: "sextortion",
     type: "image",
     aspect: 1744 / 1562,
+    widthRange: IG_WIDTH,
     link: "https://about.fb.com/news/2024/04/new-tools-to-help-protect-against-sextortion-and-intimate-image-abuse/",
   },
   {
@@ -220,6 +236,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     id: "parental",
     type: "image",
     aspect: 1780 / 1552,
+    widthRange: IG_WIDTH,
     link: "https://about.fb.com/news/2023/06/parental-supervision-and-teen-time-management-on-metas-apps/",
   },
   {
@@ -227,6 +244,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     id: "dm-limit",
     type: "image",
     aspect: 1862 / 1538,
+    widthRange: IG_WIDTH,
     link: "https://www.theverge.com/2023/8/3/23818552/instagram-dm-request-spam-limit",
   },
   {
@@ -234,6 +252,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     id: "abuse",
     type: "image",
     aspect: 1916 / 1554,
+    widthRange: IG_WIDTH,
     link: "https://about.fb.com/news/2022/10/protecting-people-on-instagram-from-abuse/",
   },
 ];
@@ -296,14 +315,20 @@ function MediaElement({
   // Shelled videos usually have a baked-in device frame in the recording,
   // so they need an aggressive default crop to hide that inner shell and
   // show just the screen content inside our shell's screen cutout.
-  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.32 : 1);
+  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.38 : 1);
+  // Shelled videos anchor the crop at the bottom so more of the top
+  // (status bar / empty space) is cropped away than the bottom. All
+  // other items default to center.
+  const cropOrigin =
+    item.cropOrigin ??
+    (item.shell && item.type === "video" ? "50% 100%" : "center");
   const innerStyle: React.CSSProperties = {
     width: "100%",
     height: "100%",
     objectFit: "cover",
     display: "block",
     transform: crop !== 1 ? `scale(${crop})` : undefined,
-    transformOrigin: "center",
+    transformOrigin: cropOrigin,
   };
   const media =
     item.type === "image" ? (
@@ -876,7 +901,10 @@ const PhoneSandbox = forwardRef<
       // Pick variant — gives the pile editorial rhythm.
       const variant = pickVariant(mediaItem, Math.random());
       const profile = VARIANTS[variant];
-      const width = profile.widthMin + Math.random() * (profile.widthMax - profile.widthMin);
+      // Per-item widthRange wins over the variant's range. Used when an
+      // item has text that needs to be readable (e.g. article headlines).
+      const [wMin, wMax] = mediaItem.widthRange ?? [profile.widthMin, profile.widthMax];
+      const width = wMin + Math.random() * (wMax - wMin);
       const height = width * aspect;
       const cornerRadius = Math.max(18, width * 0.12);
 
