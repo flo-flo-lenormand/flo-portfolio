@@ -154,6 +154,9 @@ type MediaItem = {
   // When true, render the media inside the /phoneshell.png device frame.
   // The physics body is sized to the shell aspect (1.97), not the screen.
   shell?: boolean;
+  // If set, single-click on a spawned phone opens this URL in a new tab
+  // instead of opening the inspection panel.
+  link?: string;
 };
 
 // Default aspect for items that don't specify one (iPhone 9:19.5 screen)
@@ -197,6 +200,41 @@ const MSL_MEDIA: MediaItem[] = [
     type: "image",
     raw: true,
     aspect: 2752 / 1536,
+  },
+];
+
+// Instagram — safety-work screens, each linking to the corresponding
+// published article. Clicking a spawned screen opens the article in a
+// new tab instead of the inspection panel. Aspects come from the actual
+// file dimensions (not phone-shaped — they're design cards).
+const INSTAGRAM_MEDIA: MediaItem[] = [
+  {
+    src: "/safety-screens/Screenshot 2026-04-13 at 16.31.02.png",
+    id: "sextortion",
+    type: "image",
+    aspect: 1744 / 1562,
+    link: "https://about.fb.com/news/2024/04/new-tools-to-help-protect-against-sextortion-and-intimate-image-abuse/",
+  },
+  {
+    src: "/safety-screens/Screenshot 2026-04-13 at 16.31.29.png",
+    id: "parental",
+    type: "image",
+    aspect: 1780 / 1552,
+    link: "https://about.fb.com/news/2023/06/parental-supervision-and-teen-time-management-on-metas-apps/",
+  },
+  {
+    src: "/safety-screens/Screenshot 2026-04-13 at 16.32.02.png",
+    id: "dm-limit",
+    type: "image",
+    aspect: 1862 / 1538,
+    link: "https://www.theverge.com/2023/8/3/23818552/instagram-dm-request-spam-limit",
+  },
+  {
+    src: "/safety-screens/Screenshot 2026-04-13 at 16.32.29.png",
+    id: "abuse",
+    type: "image",
+    aspect: 1916 / 1554,
+    link: "https://about.fb.com/news/2022/10/protecting-people-on-instagram-from-abuse/",
   },
 ];
 
@@ -1036,10 +1074,23 @@ const PhoneSandbox = forwardRef<
         const wasClick = totalDist < 3 && duration < 220;
 
         if (wasClick) {
-          // Unfreeze and hand off to inspection. The body is immediately
-          // re-frozen by openInspection so it doesn't fall mid-animation.
           Matter.Body.setStatic(body, false);
           draggingRef.current.delete(key);
+          // If the clicked phone has a link, open it in a new tab instead
+          // of opening the inspection panel. Safety-work screens are the
+          // primary users of this: click reads the article.
+          const clickedItem = itemsRef.current.find((it) => it.key === key);
+          const clickedSource = clickedItem
+            ? sourcesRef.current.find((s) => s.id === clickedItem.sourceId)
+            : null;
+          const clickedMedia =
+            clickedItem && clickedSource
+              ? clickedSource.media[clickedItem.mediaIndex]
+              : null;
+          if (clickedMedia?.link) {
+            window.open(clickedMedia.link, "_blank", "noopener,noreferrer");
+            return;
+          }
           openInspectionRef.current(key);
           return;
         }
@@ -1556,9 +1607,14 @@ export default function HomeView() {
 
   const messengerRef = useRef<HTMLSpanElement>(null);
   const mslRef = useRef<HTMLSpanElement>(null);
+  const igRef = useRef<HTMLSpanElement>(null);
 
   const sandboxRef = useRef<PhoneSandboxHandle>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
+
+  // Instagram: in reduced motion we cycle through the articles without a
+  // pile; each click just opens the next URL. Track the cursor here.
+  const igCycleRef = useRef(0);
 
   // Reduced-motion showcase state: which media item is currently surfaced
   // for each source, or null if nothing. Cycles forward on each click.
@@ -1591,12 +1647,20 @@ export default function HomeView() {
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }, []);
 
+  const getIgOrigin = useCallback(() => {
+    const el = igRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }, []);
+
   const sources: SandboxSource[] = useMemo(
     () => [
       { id: "messenger", getOrigin: getMessengerOrigin, media: MESSENGER_MEDIA },
       { id: "msl", getOrigin: getMslOrigin, media: MSL_MEDIA },
+      { id: "instagram", getOrigin: getIgOrigin, media: INSTAGRAM_MEDIA },
     ],
-    [getMessengerOrigin, getMslOrigin]
+    [getMessengerOrigin, getMslOrigin, getIgOrigin]
   );
 
   const onMessengerSpawn = useCallback(() => {
@@ -1613,6 +1677,17 @@ export default function HomeView() {
       sandboxRef.current?.spawn("msl");
     }
   }, [reducedMotion]);
+  const onIgSpawn = useCallback(() => {
+    if (reducedMotion) {
+      // Reduced motion: open the next article directly, cycling through.
+      const idx = igCycleRef.current % INSTAGRAM_MEDIA.length;
+      igCycleRef.current += 1;
+      const link = INSTAGRAM_MEDIA[idx]?.link;
+      if (link) window.open(link, "_blank", "noopener,noreferrer");
+    } else {
+      sandboxRef.current?.spawn("instagram");
+    }
+  }, [reducedMotion]);
 
   const messengerLogo = useLogoPressSpawner({
     ready,
@@ -1624,6 +1699,12 @@ export default function HomeView() {
     ready,
     logoRef: mslRef,
     onSpawn: onMslSpawn,
+    reducedMotion,
+  });
+  const igLogo = useLogoPressSpawner({
+    ready,
+    logoRef: igRef,
+    onSpawn: onIgSpawn,
     reducedMotion,
   });
 
@@ -1646,15 +1727,28 @@ export default function HomeView() {
         transition={itemTransition}
       >
         I made conversations <SafeWord /> on{" "}
-        <LogoWithLabel
-          logoSrc="/ig.png"
-          labelSrc="/instagram-written.png"
-          logoAlt="Instagram"
-          labelAlt="Instagram"
-          logoSize={24}
-          labelWidth={108}
-          labelOffset={{ top: -48, left: 7 }}
-        />
+        <motion.span
+          style={{
+            display: "inline-block",
+            verticalAlign: "middle",
+            x: igLogo.x,
+            y: igLogo.y,
+            scale: igLogo.scale,
+            rotate: igLogo.rotate,
+          }}
+        >
+          <LogoWithLabel
+            logoSrc="/ig.png"
+            labelSrc="/instagram-written.png"
+            logoAlt="Instagram"
+            labelAlt="Instagram"
+            logoSize={24}
+            labelWidth={108}
+            labelOffset={{ top: -48, left: 7 }}
+            logoRef={igRef}
+            interactive
+          />
+        </motion.span>
         <br />
         Then <ExpressiveWord /> on{" "}
         <motion.span
@@ -1706,7 +1800,7 @@ export default function HomeView() {
         </motion.span>
       </motion.p>
 
-      <MediaPreloader media={[...MESSENGER_MEDIA, ...MSL_MEDIA]} />
+      <MediaPreloader media={[...MESSENGER_MEDIA, ...MSL_MEDIA, ...INSTAGRAM_MEDIA]} />
       {reducedMotion ? (
         <QuietShowcase
           messengerItem={mShowIdx !== null ? MESSENGER_MEDIA[mShowIdx] : null}
