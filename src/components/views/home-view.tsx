@@ -177,10 +177,10 @@ const PHONE_ASPECT = 19.5 / 9;
 // (1419 × 2796) alpha channel.
 const SHELL_SRC = "/phoneshell.png";
 const SHELL_ASPECT = 2796 / 1419; // h / w, ≈ 1.9704
-const SHELL_SCREEN_LEFT = 0.08457;
-const SHELL_SCREEN_TOP = 0.09442;
-const SHELL_SCREEN_WIDTH = 0.83087;
-const SHELL_SCREEN_HEIGHT = 0.86266;
+const SHELL_SCREEN_LEFT = 0.0845;
+const SHELL_SCREEN_TOP = 0.0415;
+const SHELL_SCREEN_WIDTH = 0.8315;
+const SHELL_SCREEN_HEIGHT = 0.9315;
 
 const MESSENGER_MEDIA: MediaItem[] = [
   // Videos render inside /phoneshell.png so their baked-in white
@@ -324,10 +324,13 @@ function MediaElement({
   // Shelled videos usually have a baked-in device frame in the recording,
   // so they need an aggressive default crop to hide that inner shell and
   // show just the screen content inside our shell's screen cutout.
-  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.22 : 1);
-  // Shelled videos keep a centered crop so both top and bottom are
-  // trimmed equally. Individual items can override cropOrigin if needed.
-  const cropOrigin = item.cropOrigin ?? "center";
+  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.04 : 1);
+  // Shelled videos anchor the crop toward the bottom (69%) so the crop
+  // trims more off the top than the bottom — matches the position where
+  // the baked-in video status bar sits. Individual items can override.
+  const cropOrigin =
+    item.cropOrigin ??
+    (item.shell && item.type === "video" ? "50% 69%" : "center");
   const innerStyle: React.CSSProperties = {
     width: "100%",
     height: "100%",
@@ -378,7 +381,7 @@ function MediaElement({
             backgroundColor: "#000",
             // The screen area in the real iPhone is rounded; inline a
             // subtle rounding so the media doesn't poke out at corners.
-            borderRadius: `${width * 0.065}px`,
+            borderRadius: `${width * 0.076}px`,
           }}
         >
           {media}
