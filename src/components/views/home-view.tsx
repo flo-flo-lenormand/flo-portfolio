@@ -226,7 +226,7 @@ const MSL_MEDIA: MediaItem[] = [
 // file dimensions (not phone-shaped — they're design cards). Sized up
 // (widthRange 280-360) so the article headlines are readable in the pile.
 const IG_WIDTH: [number, number] = [280, 360];
-const IG_CORNER = 14; // article-card rounding, not phone rounding
+const IG_CORNER = 8; // article-card rounding, not phone rounding
 const INSTAGRAM_MEDIA: MediaItem[] = [
   {
     src: "/safety-screens/Screenshot 2026-04-13 at 16.31.02.png",
