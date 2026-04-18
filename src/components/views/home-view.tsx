@@ -324,13 +324,10 @@ function MediaElement({
   // Shelled videos usually have a baked-in device frame in the recording,
   // so they need an aggressive default crop to hide that inner shell and
   // show just the screen content inside our shell's screen cutout.
-  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.38 : 1);
-  // Shelled videos anchor the crop at the bottom so more of the top
-  // (status bar / empty space) is cropped away than the bottom. All
-  // other items default to center.
-  const cropOrigin =
-    item.cropOrigin ??
-    (item.shell && item.type === "video" ? "50% 100%" : "center");
+  const crop = item.crop ?? (item.shell && item.type === "video" ? 1.32 : 1);
+  // Shelled videos keep a centered crop so both top and bottom are
+  // trimmed equally. Individual items can override cropOrigin if needed.
+  const cropOrigin = item.cropOrigin ?? "center";
   const innerStyle: React.CSSProperties = {
     width: "100%",
     height: "100%",
