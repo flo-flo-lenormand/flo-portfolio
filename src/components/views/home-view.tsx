@@ -202,10 +202,6 @@ const MESSENGER_MEDIA: MediaItem[] = [
   { src: "/messenger-screens/In-thread-1.png", id: "inthread1", type: "image", aspect: 2760 / 1350 },
   { src: "/messenger-screens/image 403.png", id: "img403", type: "image", aspect: 2760 / 1350 },
   { src: "/messenger-screens/image 405.png", id: "img405", type: "image", aspect: 2760 / 1350 },
-  // Extra Messenger-style screenshots kept in safety-screens/ for now.
-  { src: "/safety-screens/image 409.png", id: "img409", type: "image", aspect: 2624 / 1284 },
-  { src: "/safety-screens/image 410.png", id: "img410", type: "image", aspect: 2624 / 1284 },
-  { src: "/safety-screens/image 411.png", id: "img411", type: "image", aspect: 2624 / 1284 },
 ];
 
 // MSL — confidential phone shell (transparent PNG with its own bezel).
@@ -220,14 +216,17 @@ const MSL_MEDIA: MediaItem[] = [
   },
 ];
 
-// Instagram — safety-work screens, each linking to the corresponding
-// published article. Clicking a spawned screen opens the article in a
-// new tab instead of the inspection panel. Aspects come from the actual
-// file dimensions (not phone-shaped — they're design cards). Sized up
-// (widthRange 280-360) so the article headlines are readable in the pile.
+// Instagram — mix of published safety-work articles (linked screenshots)
+// and static design mocks. The screenshots have a `link` that opens the
+// published article; the mocks open the inspection panel on click. Order
+// is randomized per spawn (see sandbox source config below) so users get
+// a shuffled read of the work rather than a fixed rotation.
+//
+// Excludes: /safety-screens/01_SENDER-EXPERIENCE-MOCK-AND-FORWARDING-FRICTION.webp
 const IG_WIDTH: [number, number] = [280, 360];
 const IG_CORNER = 8; // article-card rounding, not phone rounding
 const INSTAGRAM_MEDIA: MediaItem[] = [
+  // Published-article screenshots. Click opens the article.
   {
     src: "/safety-screens/Screenshot 2026-04-13 at 16.31.02.png",
     id: "sextortion",
@@ -264,7 +263,24 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     cornerRadius: IG_CORNER,
     link: "https://about.fb.com/news/2022/10/protecting-people-on-instagram-from-abuse/",
   },
+  // Static design mocks — phone-shaped (2.044 aspect), no link → click
+  // opens inspection. Using default variant sizing so they appear as
+  // phones alongside the article cards.
+  { src: "/safety-screens/image 409.png", id: "ig-mock-409", type: "image", aspect: 2624 / 1284 },
+  { src: "/safety-screens/image 410.png", id: "ig-mock-410", type: "image", aspect: 2624 / 1284 },
+  { src: "/safety-screens/image 411.png", id: "ig-mock-411", type: "image", aspect: 2624 / 1284 },
 ];
+
+// Fisher–Yates shuffle producing [0, n) in random order. Used by sources
+// with randomOrder: true to distribute items without repeats per cycle.
+function shuffleIndices(n: number): number[] {
+  const out = Array.from({ length: n }, (_, i) => i);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 const itemAspect = (item: MediaItem) => {
   if (item.shell) return SHELL_ASPECT;
@@ -495,6 +511,10 @@ type SandboxSource = {
   id: string;
   getOrigin: () => { x: number; y: number };
   media: MediaItem[];
+  // When true, each spawn picks a random item from `media` using a
+  // shuffled queue (no repeats until every item has been shown once).
+  // Otherwise items cycle in array order.
+  randomOrder?: boolean;
 };
 
 type SpawnedItem = {
@@ -550,6 +570,10 @@ const PhoneSandbox = forwardRef<
     const itemsRef = useRef<SpawnedItem[]>([]);
     const keyRef = useRef(0);
     const countersRef = useRef<Record<string, number>>({});
+    // Shuffled queue per randomOrder source: each spawn consumes from the
+    // head; when empty the pool is reshuffled so every item is shown once
+    // per cycle with no repeats.
+    const shuffleQueuesRef = useRef<Record<string, number[]>>({});
     const engineRef = useRef<Matter.Engine | null>(null);
     const wallsRef = useRef<Matter.Body[]>([]);
     const rafRef = useRef(0);
@@ -917,7 +941,19 @@ const PhoneSandbox = forwardRef<
       countersRef.current[sourceId] = prevCount + 1;
       const n = prevCount;
 
-      const mediaIndex = n % source.media.length;
+      let mediaIndex: number;
+      if (source.randomOrder) {
+        // Pop from (or reshuffle) the per-source queue so every item is
+        // shown once per cycle — keeps variety without risking repeats.
+        let queue = shuffleQueuesRef.current[sourceId];
+        if (!queue || queue.length === 0) {
+          queue = shuffleIndices(source.media.length);
+          shuffleQueuesRef.current[sourceId] = queue;
+        }
+        mediaIndex = queue.pop()!;
+      } else {
+        mediaIndex = n % source.media.length;
+      }
       const mediaItem = source.media[mediaIndex];
       const aspect = itemAspect(mediaItem);
 
@@ -1714,7 +1750,7 @@ export default function HomeView() {
     () => [
       { id: "messenger", getOrigin: getMessengerOrigin, media: MESSENGER_MEDIA },
       { id: "msl", getOrigin: getMslOrigin, media: MSL_MEDIA },
-      { id: "instagram", getOrigin: getIgOrigin, media: INSTAGRAM_MEDIA },
+      { id: "instagram", getOrigin: getIgOrigin, media: INSTAGRAM_MEDIA, randomOrder: true },
     ],
     [getMessengerOrigin, getMslOrigin, getIgOrigin]
   );
@@ -1735,11 +1771,13 @@ export default function HomeView() {
   }, [reducedMotion]);
   const onIgSpawn = useCallback(() => {
     if (reducedMotion) {
-      // Reduced motion: open the next article directly, cycling through.
-      const idx = igCycleRef.current % INSTAGRAM_MEDIA.length;
+      // Reduced motion: open a random linked article. Skip static mocks
+      // (no `link`) — reduced-motion users can't inspect those anyway.
+      const articles = INSTAGRAM_MEDIA.filter((m) => m.link);
+      if (articles.length === 0) return;
+      const pick = articles[Math.floor(Math.random() * articles.length)];
+      if (pick.link) window.open(pick.link, "_blank", "noopener,noreferrer");
       igCycleRef.current += 1;
-      const link = INSTAGRAM_MEDIA[idx]?.link;
-      if (link) window.open(link, "_blank", "noopener,noreferrer");
     } else {
       sandboxRef.current?.spawn("instagram");
     }
