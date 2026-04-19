@@ -643,7 +643,10 @@ const PhoneSandbox = forwardRef<
       let textBody: Matter.Body | null = null;
       let lastRect: { cx: number; cy: number; w: number; h: number } | null = null;
       const syncTextWall = () => {
-        const rect = textRectRef.current?.();
+        // No text wall on narrow viewports — the pile already has little
+        // room and bouncing off the paragraph just crowds the experience.
+        const onMobile = window.innerWidth < MOBILE_BREAKPOINT;
+        const rect = onMobile ? null : textRectRef.current?.();
         if (!rect || rect.width < 2 || rect.height < 2) {
           if (textBody) {
             Matter.Composite.remove(engine.world, textBody);
@@ -1475,13 +1478,50 @@ function SoundToggle() {
 }
 
 function MediaPreloader({ media }: { media: MediaItem[] }) {
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+
+  // Mobile Safari / Android Chrome routinely ignore `preload="auto"` on
+  // 0-size hidden videos — they wait for a user gesture or visibility.
+  // We poke the videos in three ways to coax them into buffering:
+  //   1. Call .load() explicitly at mount (some browsers respect this).
+  //   2. Re-call .load() on the FIRST user pointerdown anywhere — this is
+  //      the gesture most restrictive browsers wait for.
+  //   3. Keep the container 2x2 px (not 0x0) and barely on-screen, which
+  //      is enough for some browsers to consider the element "visible"
+  //      and preload its media.
+  useEffect(() => {
+    const map = videoRefs.current;
+    const loadAll = () => {
+      map.forEach((v) => {
+        try { v.load(); } catch { /* ignore */ }
+      });
+    };
+    loadAll();
+    const onFirstGesture = () => {
+      loadAll();
+      window.removeEventListener("pointerdown", onFirstGesture);
+      window.removeEventListener("touchstart", onFirstGesture);
+      window.removeEventListener("keydown", onFirstGesture);
+    };
+    window.addEventListener("pointerdown", onFirstGesture, { once: true });
+    window.addEventListener("touchstart", onFirstGesture, { once: true });
+    window.addEventListener("keydown", onFirstGesture, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", onFirstGesture);
+      window.removeEventListener("touchstart", onFirstGesture);
+      window.removeEventListener("keydown", onFirstGesture);
+    };
+  }, []);
+
   return (
     <div
       aria-hidden
       style={{
         position: "fixed",
-        width: 0,
-        height: 0,
+        top: 0,
+        left: 0,
+        width: 2,
+        height: 2,
         overflow: "hidden",
         pointerEvents: "none",
         opacity: 0,
@@ -1489,7 +1529,17 @@ function MediaPreloader({ media }: { media: MediaItem[] }) {
     >
       {media.map((m) =>
         m.type === "video" ? (
-          <video key={m.id} src={m.src} preload="auto" muted playsInline />
+          <video
+            key={m.id}
+            ref={(el) => {
+              if (el) videoRefs.current.set(m.id, el);
+              else videoRefs.current.delete(m.id);
+            }}
+            src={m.src}
+            preload="auto"
+            muted
+            playsInline
+          />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img key={m.id} src={m.src} alt="" />
