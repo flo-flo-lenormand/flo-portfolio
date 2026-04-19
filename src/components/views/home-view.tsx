@@ -164,6 +164,11 @@ type MediaItem = {
   // Optional size override (in px). Replaces the variant's width range
   // for this item — useful for content that needs extra space to read.
   widthRange?: [number, number];
+  // Optional mobile-only width range. When set AND the viewport is below
+  // MOBILE_BREAKPOINT, this is used instead of widthRange (and bypasses the
+  // viewport scale factor). Lets content stay readable on small screens
+  // without the pile dominating.
+  mobileWidthRange?: [number, number];
   // Optional rounded-corner override (in px). Defaults to
   // max(18, width * 0.12) — tuned for iPhone-style screens. Article
   // cards or non-phone items can dial it down.
@@ -224,6 +229,7 @@ const MSL_MEDIA: MediaItem[] = [
 //
 // Excludes: /safety-screens/01_SENDER-EXPERIENCE-MOCK-AND-FORWARDING-FRICTION.webp
 const IG_WIDTH: [number, number] = [280, 360];
+const IG_WIDTH_MOBILE: [number, number] = [140, 180];
 const IG_CORNER = 8; // article-card rounding, not phone rounding
 const INSTAGRAM_MEDIA: MediaItem[] = [
   // Published-article screenshots. Click opens the article.
@@ -233,6 +239,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1744 / 1562,
     widthRange: IG_WIDTH,
+    mobileWidthRange: IG_WIDTH_MOBILE,
     cornerRadius: IG_CORNER,
     link: "https://about.fb.com/news/2024/04/new-tools-to-help-protect-against-sextortion-and-intimate-image-abuse/",
   },
@@ -242,6 +249,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1780 / 1552,
     widthRange: IG_WIDTH,
+    mobileWidthRange: IG_WIDTH_MOBILE,
     cornerRadius: IG_CORNER,
     link: "https://about.fb.com/news/2023/06/parental-supervision-and-teen-time-management-on-metas-apps/",
   },
@@ -251,6 +259,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1862 / 1538,
     widthRange: IG_WIDTH,
+    mobileWidthRange: IG_WIDTH_MOBILE,
     cornerRadius: IG_CORNER,
     link: "https://www.theverge.com/2023/8/3/23818552/instagram-dm-request-spam-limit",
   },
@@ -260,6 +269,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
     type: "image",
     aspect: 1916 / 1554,
     widthRange: IG_WIDTH,
+    mobileWidthRange: IG_WIDTH_MOBILE,
     cornerRadius: IG_CORNER,
     link: "https://about.fb.com/news/2022/10/protecting-people-on-instagram-from-abuse/",
   },
@@ -450,11 +460,17 @@ function getViewportScale() {
   const w = window.innerWidth;
   if (w >= MOBILE_BREAKPOINT) return 1;
   if (w >= 420) return 0.78;
-  return 0.62;
+  return 0.48; // tighter on real phone viewports so the pile has room
 }
 function getItemCap() {
   if (typeof window === "undefined") return 60;
-  return window.innerWidth >= MOBILE_BREAKPOINT ? 60 : 28;
+  return window.innerWidth >= MOBILE_BREAKPOINT ? 60 : 14;
+}
+// Mobile gets gentler impulses so phones don't traverse the whole viewport
+// in a single spawn — it's a cramped canvas down there.
+function getMobileImpulseScale() {
+  if (typeof window === "undefined") return 1;
+  return window.innerWidth < MOBILE_BREAKPOINT ? 0.75 : 1;
 }
 
 // Phone variants — different mass/size/bounciness so the pile develops rhythm.
@@ -597,8 +613,12 @@ const PhoneSandbox = forwardRef<
     useEffect(() => {
       if (typeof window === "undefined") return;
 
+      // Gentler gravity on mobile so phones arc less far and take longer
+      // to resettle — suits a cramped viewport.
+      const gravityScale =
+        window.innerWidth < MOBILE_BREAKPOINT ? 0.00083 : 0.0011;
       const engine = Matter.Engine.create({
-        gravity: { x: 0, y: 1, scale: 0.0011 },
+        gravity: { x: 0, y: 1, scale: gravityScale },
         positionIterations: 8,
         velocityIterations: 8,
       });
@@ -967,22 +987,35 @@ const PhoneSandbox = forwardRef<
       // item has text that needs to be readable (e.g. article headlines).
       // Scale down on narrow viewports so phones don't dominate the screen.
       const vScale = getViewportScale();
-      const [rawMin, rawMax] = mediaItem.widthRange ?? [profile.widthMin, profile.widthMax];
-      const wMin = rawMin * vScale;
-      const wMax = rawMax * vScale;
+      const onMobile =
+        typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT;
+      let wMin: number;
+      let wMax: number;
+      if (onMobile && mediaItem.mobileWidthRange) {
+        // Mobile-specific range already tuned for small screens — skip vScale
+        [wMin, wMax] = mediaItem.mobileWidthRange;
+      } else {
+        const [rawMin, rawMax] =
+          mediaItem.widthRange ?? [profile.widthMin, profile.widthMax];
+        wMin = rawMin * vScale;
+        wMax = rawMax * vScale;
+      }
       const width = wMin + Math.random() * (wMax - wMin);
       const height = width * aspect;
       const cornerRadius = Math.max(18, width * 0.12);
 
       // Trajectory — walked through the golden ratio so every click is fresh.
       // Heavy phones eject slightly slower (they thud sooner), light ones lift.
+      // Mobile gets a 0.75x impulse scale so phones don't cover the screen
+      // in a single arc.
+      const impulseScale = getMobileImpulseScale();
       const PHI = (1 + Math.sqrt(5)) / 2;
       const baseAngle = ((n * (1 / PHI)) % 1) * Math.PI * 2;
       const theta = -Math.PI / 2 + Math.sin(baseAngle) * (Math.PI * 0.55);
       const speedBoost = variant === "light" ? 2.5 : variant === "heavy" ? -2.5 : 0;
-      const speed = 16 + Math.random() * 10 + speedBoost;
-      const vx = Math.cos(theta) * speed + (Math.random() - 0.5) * 3;
-      const vy = Math.sin(theta) * speed - 2;
+      const speed = (16 + Math.random() * 10 + speedBoost) * impulseScale;
+      const vx = Math.cos(theta) * speed + (Math.random() - 0.5) * 3 * impulseScale;
+      const vy = Math.sin(theta) * speed - 2 * impulseScale;
 
       const body = Matter.Bodies.rectangle(origin.x, origin.y, width, height, {
         density: profile.density,
@@ -1337,13 +1370,29 @@ function InspectionPanel({
     >
       <motion.div
         className="select-none"
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.85, y: 0 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92 }}
         transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        // Swipe-down-to-dismiss — drag the phone down and release; if it
+        // traveled more than 80 px or was flicked fast, close. Otherwise
+        // spring back to center. Works on touch and mouse.
+        drag="y"
+        dragElastic={0.35}
+        dragMomentum={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 80 || info.velocity.y > 700) {
+            onClose();
+          }
+        }}
+        // Stop bubble so the wrapper's onClick doesn't fire during drag.
+        onClick={(e) => e.stopPropagation()}
         style={{
           width: fit.w,
           filter: "drop-shadow(0 30px 60px rgba(15, 20, 45, 0.22))",
+          touchAction: "none",
+          cursor: "grab",
         }}
       >
         <MediaElement item={item} width={fit.w} audible />
@@ -1445,10 +1494,8 @@ function SoundToggle() {
       type="button"
       onClick={toggle}
       aria-label={muted ? "Enable sound" : "Mute sound"}
-      className="fixed bottom-5 right-5 z-[70] flex items-center justify-center rounded-full cursor-pointer"
+      className="fixed bottom-5 right-5 z-[70] flex items-center justify-center rounded-full cursor-pointer w-11 h-11 sm:w-9 sm:h-9"
       style={{
-        width: 36,
-        height: 36,
         color: muted ? "#9ca3af" : "#111827",
         backgroundColor: "rgba(255,255,255,0.7)",
         backdropFilter: "blur(6px)",
