@@ -6,6 +6,18 @@ import html from "remark-html";
 
 const articlesDirectory = path.join(process.cwd(), "content/articles");
 
+// Slugs must be plain kebab/snake case. Anything with "..", slashes,
+// nulls, or other path separators is rejected before we touch the
+// filesystem — prevents directory traversal attacks like
+// /writing/..%2F..%2Fetc%2Fpasswd.
+const SLUG_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
+
+function assertSafeSlug(slug: string): void {
+  if (typeof slug !== "string" || !SLUG_REGEX.test(slug)) {
+    throw new Error(`Invalid slug: ${String(slug).slice(0, 64)}`);
+  }
+}
+
 export interface Article {
   slug: string;
   title: string;
@@ -45,7 +57,23 @@ export function getAllArticles(): Article[] {
 export async function getArticleBySlug(
   slug: string
 ): Promise<Article & { content: string }> {
+  // 1) Reject anything that isn't a plain kebab/snake-case identifier.
+  assertSafeSlug(slug);
+
   const fullPath = path.join(articlesDirectory, `${slug}.md`);
+
+  // 2) Defense-in-depth: confirm the resolved path is still inside the
+  //    articles directory. Guards against any character sequence that
+  //    slips past the regex on unusual filesystems.
+  const resolvedFull = path.resolve(fullPath);
+  const resolvedBase = path.resolve(articlesDirectory);
+  if (
+    resolvedFull !== resolvedBase &&
+    !resolvedFull.startsWith(resolvedBase + path.sep)
+  ) {
+    throw new Error(`Refused path outside articles directory: ${slug}`);
+  }
+
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(fileContents);
 
