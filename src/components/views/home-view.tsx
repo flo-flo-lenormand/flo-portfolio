@@ -296,6 +296,67 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
   { src: "/safety-screens/image 411.png", id: "ig-mock-411", type: "image", aspect: 2624 / 1284 },
 ];
 
+// Social cards — surprise guests that occasionally spawn from any logo
+// instead of the logo's usual media pool. Small circular-ish icons with
+// click-through links. Drop a /substack.png file in public/ and set the
+// URL below to include Substack too.
+const SOCIAL_CORNER = 16; // iOS-app-icon corner rounding
+const SOCIAL_WIDTH: [number, number] = [82, 112];
+const SOCIAL_WIDTH_MOBILE: [number, number] = [58, 76];
+const SOCIAL_MEDIA: MediaItem[] = [
+  {
+    src: "/x.png",
+    id: "social-x",
+    type: "image",
+    aspect: 1,
+    widthRange: SOCIAL_WIDTH,
+    mobileWidthRange: SOCIAL_WIDTH_MOBILE,
+    cornerRadius: SOCIAL_CORNER,
+    link: "#x", // TODO: paste real X/Twitter URL
+  },
+  {
+    src: "/github.png",
+    id: "social-github",
+    type: "image",
+    aspect: 1,
+    widthRange: SOCIAL_WIDTH,
+    mobileWidthRange: SOCIAL_WIDTH_MOBILE,
+    cornerRadius: SOCIAL_CORNER,
+    link: "#github", // TODO: paste real GitHub URL
+  },
+  {
+    src: "/linkedin.png",
+    id: "social-linkedin",
+    type: "image",
+    aspect: 1,
+    widthRange: SOCIAL_WIDTH,
+    mobileWidthRange: SOCIAL_WIDTH_MOBILE,
+    cornerRadius: SOCIAL_CORNER,
+    link: "#linkedin", // TODO: paste real LinkedIn URL
+  },
+  {
+    src: "/ig.png",
+    id: "social-instagram",
+    type: "image",
+    aspect: 1,
+    widthRange: SOCIAL_WIDTH,
+    mobileWidthRange: SOCIAL_WIDTH_MOBILE,
+    cornerRadius: SOCIAL_CORNER,
+    link: "#instagram", // TODO: paste real Instagram profile URL
+  },
+  // Substack: uncomment after dropping /public/substack.png + real URL.
+  // {
+  //   src: "/substack.png",
+  //   id: "social-substack",
+  //   type: "image",
+  //   aspect: 1,
+  //   widthRange: SOCIAL_WIDTH,
+  //   mobileWidthRange: SOCIAL_WIDTH_MOBILE,
+  //   cornerRadius: SOCIAL_CORNER,
+  //   link: "https://...substack.com",
+  // },
+];
+
 // Fisher–Yates shuffle producing [0, n) in random order. Used by sources
 // with randomOrder: true to distribute items without repeats per cycle.
 function shuffleIndices(n: number): number[] {
@@ -550,8 +611,8 @@ type SandboxSource = {
 
 type SpawnedItem = {
   key: number;
-  sourceId: string;
-  mediaIndex: number;
+  sourceId: string; // the logo that spawned this phone (for origin / implode)
+  media: MediaItem; // what's rendered — may come from a shared pool (socials)
   width: number;
   aspect: number;
   variant: Variant;
@@ -979,20 +1040,49 @@ const PhoneSandbox = forwardRef<
       countersRef.current[sourceId] = prevCount + 1;
       const n = prevCount;
 
-      let mediaIndex: number;
-      if (source.randomOrder) {
-        // Pop from (or reshuffle) the per-source queue so every item is
-        // shown once per cycle — keeps variety without risking repeats.
-        let queue = shuffleQueuesRef.current[sourceId];
-        if (!queue || queue.length === 0) {
-          queue = shuffleIndices(source.media.length);
-          shuffleQueuesRef.current[sourceId] = queue;
+      // Social surprise: every so often a spawn from any logo produces a
+      // social icon instead of the logo's usual media. Rules tuned so
+      // socials feel rewarding, not spammy:
+      //   - MIN_GAP     never within this many non-social spawns of the
+      //                 previous social (no back-to-back surprises)
+      //   - FORCE_AT    guaranteed social after this many non-social
+      //                 spawns — so an engaged user always sees one
+      //   - CHANCE      otherwise random probability per eligible spawn
+      const SOCIAL_MIN_GAP = 4;
+      const SOCIAL_FORCE_AT = 13;
+      const SOCIAL_CHANCE = 0.12;
+      const socialCooldown = countersRef.current._socialCooldown ?? 0;
+      const spawnSocial =
+        SOCIAL_MEDIA.length > 0 &&
+        socialCooldown >= SOCIAL_MIN_GAP &&
+        (socialCooldown >= SOCIAL_FORCE_AT || Math.random() < SOCIAL_CHANCE);
+
+      let mediaItem: MediaItem;
+      if (spawnSocial) {
+        // Don't repeat the most-recently-shown social if we can help it.
+        const lastSocialId = (shuffleQueuesRef.current.__lastSocialId?.[0] ?? -1);
+        let idx = Math.floor(Math.random() * SOCIAL_MEDIA.length);
+        if (SOCIAL_MEDIA.length > 1 && idx === lastSocialId) {
+          idx = (idx + 1) % SOCIAL_MEDIA.length;
         }
-        mediaIndex = queue.pop()!;
+        shuffleQueuesRef.current.__lastSocialId = [idx];
+        mediaItem = SOCIAL_MEDIA[idx];
+        countersRef.current._socialCooldown = 0;
       } else {
-        mediaIndex = n % source.media.length;
+        let mediaIndex: number;
+        if (source.randomOrder) {
+          let queue = shuffleQueuesRef.current[sourceId];
+          if (!queue || queue.length === 0) {
+            queue = shuffleIndices(source.media.length);
+            shuffleQueuesRef.current[sourceId] = queue;
+          }
+          mediaIndex = queue.pop()!;
+        } else {
+          mediaIndex = n % source.media.length;
+        }
+        mediaItem = source.media[mediaIndex];
+        countersRef.current._socialCooldown = socialCooldown + 1;
       }
-      const mediaItem = source.media[mediaIndex];
       const aspect = itemAspect(mediaItem);
 
       // Pick variant — gives the pile editorial rhythm.
@@ -1048,7 +1138,7 @@ const PhoneSandbox = forwardRef<
       itemsRef.current.push({
         key: keyRef.current++,
         sourceId,
-        mediaIndex,
+        media: mediaItem,
         width,
         aspect,
         variant,
@@ -1229,13 +1319,7 @@ const PhoneSandbox = forwardRef<
           // of opening the inspection panel. Safety-work screens are the
           // primary users of this: click reads the article.
           const clickedItem = itemsRef.current.find((it) => it.key === key);
-          const clickedSource = clickedItem
-            ? sourcesRef.current.find((s) => s.id === clickedItem.sourceId)
-            : null;
-          const clickedMedia =
-            clickedItem && clickedSource
-              ? clickedSource.media[clickedItem.mediaIndex]
-              : null;
+          const clickedMedia = clickedItem ? clickedItem.media : null;
           if (clickedMedia?.link) {
             window.open(clickedMedia.link, "_blank", "noopener,noreferrer");
             return;
@@ -1271,7 +1355,7 @@ const PhoneSandbox = forwardRef<
       target.addEventListener("pointermove", onMove);
       target.addEventListener("pointerup", onUp);
       target.addEventListener("pointercancel", onUp);
-    }, [getDragForbiddenRect]);
+    }, [getDragForbiddenRect, clearAll]);
 
     if (typeof document === "undefined") return null;
     if (Object.keys(frames).length === 0 && !implodingRef.current) return null;
@@ -1281,12 +1365,7 @@ const PhoneSandbox = forwardRef<
       inspectedKey !== null
         ? itemsRef.current.find((it) => it.key === inspectedKey)
         : null;
-    const inspectedSource = inspectedItem
-      ? sources.find((s) => s.id === inspectedItem.sourceId)
-      : null;
-    const inspectedMedia = inspectedItem && inspectedSource
-      ? inspectedSource.media[inspectedItem.mediaIndex]
-      : null;
+    const inspectedMedia = inspectedItem ? inspectedItem.media : null;
 
     return createPortal(
       <>
@@ -1295,9 +1374,7 @@ const PhoneSandbox = forwardRef<
           if (it.key === inspectedKey) return null;
           const f = frames[it.key];
           if (!f || f.scale < 0.02) return null;
-          const source = sources.find((s) => s.id === it.sourceId);
-          if (!source) return null;
-          const mediaItem = source.media[it.mediaIndex];
+          const mediaItem = it.media;
           const isDragging = draggingRef.current.has(it.key);
 
           // Shadow: velocity-driven normally, bumped while held so the
@@ -1489,54 +1566,6 @@ function QuietShowcase({
 
 // Tiny speaker toggle — bottom-right, barely there. Persists mute to
 // localStorage via the sfx module.
-// Tiny social footer — whisper-quiet, bottom-center of the viewport.
-// Brightens slightly on hover. Fill in the hrefs with real profiles.
-function SocialFooter() {
-  const links = [
-    { src: "/linkedin.png", alt: "LinkedIn", href: "#linkedin" },
-    { src: "/github.png", alt: "GitHub", href: "#github" },
-    { src: "/x.png", alt: "X (Twitter)", href: "#x" },
-  ];
-  return (
-    <div
-      aria-label="Social links"
-      className="fixed left-1/2 z-[65] flex items-center gap-3"
-      style={{
-        bottom: "max(10px, env(safe-area-inset-bottom))",
-        transform: "translateX(-50%)",
-      }}
-    >
-      {links.map((l) => (
-        <a
-          key={l.alt}
-          href={l.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={l.alt}
-          className="transition-opacity duration-200"
-          style={{
-            display: "inline-flex",
-            opacity: 0.28,
-            lineHeight: 0,
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.28")}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={l.src}
-            alt=""
-            width={14}
-            height={14}
-            style={{ display: "block" }}
-            draggable={false}
-          />
-        </a>
-      ))}
-    </div>
-  );
-}
-
 function SoundToggle() {
   const muted = useSyncExternalStore(
     (fn) => sfx.subscribe(fn),
@@ -2070,7 +2099,14 @@ export default function HomeView() {
         </motion.span>
       </motion.p>
 
-      <MediaPreloader media={[...MESSENGER_MEDIA, ...MSL_MEDIA, ...INSTAGRAM_MEDIA]} />
+      <MediaPreloader
+        media={[
+          ...MESSENGER_MEDIA,
+          ...MSL_MEDIA,
+          ...INSTAGRAM_MEDIA,
+          ...SOCIAL_MEDIA,
+        ]}
+      />
       {reducedMotion ? (
         <QuietShowcase
           messengerItem={mShowIdx !== null ? MESSENGER_MEDIA[mShowIdx] : null}
@@ -2087,7 +2123,6 @@ export default function HomeView() {
           <SoundToggle />
         </>
       )}
-      <SocialFooter />
     </>
   );
 }
