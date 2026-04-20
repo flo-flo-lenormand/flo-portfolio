@@ -75,6 +75,21 @@ function LogoWithLabel({
   interactive?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
+  // Only show the written label on devices that actually hover. Touch
+  // taps synthesize a brief mouseenter that would flash the label in,
+  // which reads as noise on mobile.
+  const canHover = useSyncExternalStore(
+    (fn) => {
+      if (typeof window === "undefined" || !window.matchMedia) return () => {};
+      const mq = window.matchMedia("(hover: hover)");
+      mq.addEventListener("change", fn);
+      return () => mq.removeEventListener("change", fn);
+    },
+    () => (typeof window !== "undefined" && window.matchMedia
+      ? window.matchMedia("(hover: hover)").matches
+      : true),
+    () => true
+  );
   const clickable = !!(onClick || interactive);
 
   return (
@@ -123,7 +138,7 @@ function LogoWithLabel({
           height: "auto",
           top: labelOffset.top,
           left: labelOffset.left,
-          opacity: hovered && !expanded ? 1 : 0,
+          opacity: canHover && hovered && !expanded ? 1 : 0,
           transitionProperty: "opacity",
           transitionDuration: "200ms",
           transitionTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
