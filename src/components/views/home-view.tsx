@@ -1238,7 +1238,15 @@ const PhoneSandbox = forwardRef<
       const offsetY = e.clientY - body.position.y;
 
       type Sample = { x: number; y: number; t: number };
-      const history: Sample[] = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+      // Fixed pointerdown position — used for click detection (total travel
+      // from press to release). Never trimmed.
+      const pressedAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+      // Tracks pointerup position so click-vs-drag uses the full travel.
+      let releasedAt = { ...pressedAt };
+      // Rolling sample buffer — only the last ~90ms is kept, used to compute
+      // the throw velocity on release. Trimmed aggressively so a drag that
+      // pauses before release doesn't get a stale first sample.
+      const history: Sample[] = [{ ...pressedAt }];
 
       const onMove = (ev: PointerEvent) => {
         if (ev.pointerId !== e.pointerId) return;
@@ -1271,8 +1279,10 @@ const PhoneSandbox = forwardRef<
         }
 
         Matter.Body.setPosition(body, { x: px, y: py });
-        history.push({ x: ev.clientX, y: ev.clientY, t: performance.now() });
-        const cutoff = performance.now() - 90;
+        const now = performance.now();
+        releasedAt = { x: ev.clientX, y: ev.clientY, t: now };
+        history.push({ x: ev.clientX, y: ev.clientY, t: now });
+        const cutoff = now - 90;
         while (history.length > 2 && history[0].t < cutoff) history.shift();
 
         // Tilt the phone toward drag direction — like a card being carried.
@@ -1301,14 +1311,15 @@ const PhoneSandbox = forwardRef<
         document.body.style.userSelect = "";
         document.body.style.cursor = "";
 
-        const first = history[0];
-        const lastSample = history[history.length - 1];
+        // Click detection uses FULL travel from pointerdown to pointerup
+        // (not the trimmed velocity history — a drag that pauses before
+        // release would otherwise have a first-and-last that are nearly
+        // identical and get mis-classified as a click).
         const totalDist = Math.sqrt(
-          (lastSample.x - first.x) ** 2 + (lastSample.y - first.y) ** 2
+          (releasedAt.x - pressedAt.x) ** 2 + (releasedAt.y - pressedAt.y) ** 2
         );
-        const duration = lastSample.t - first.t;
-        // Tight thresholds so any real drag is never mistaken for a click.
-        const wasClick = totalDist < 3 && duration < 220;
+        const pressDuration = releasedAt.t - pressedAt.t;
+        const wasClick = totalDist < 3 && pressDuration < 220;
 
         if (wasClick) {
           Matter.Body.setStatic(body, false);
@@ -1326,8 +1337,12 @@ const PhoneSandbox = forwardRef<
           return;
         }
 
-        // Normal drag release — throw with the averaged cursor velocity.
-        const dt = Math.max(16, duration);
+        // Throw velocity — uses the trimmed rolling window so the phone
+        // leaves with the *recent* cursor motion, not the whole drag
+        // averaged.
+        const first = history[0];
+        const lastSample = history[history.length - 1];
+        const dt = Math.max(16, lastSample.t - first.t);
         const vx = ((lastSample.x - first.x) / dt) * 16;
         const vy = ((lastSample.y - first.y) / dt) * 16;
 
