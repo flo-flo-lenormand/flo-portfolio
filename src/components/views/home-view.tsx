@@ -1046,9 +1046,9 @@ const PhoneSandbox = forwardRef<
       //   - FORCE_AT    guaranteed social after this many non-social
       //                 spawns — so an engaged user always sees one
       //   - CHANCE      otherwise random probability per eligible spawn
-      const SOCIAL_MIN_GAP = 4;
-      const SOCIAL_FORCE_AT = 13;
-      const SOCIAL_CHANCE = 0.12;
+      const SOCIAL_MIN_GAP = 2;
+      const SOCIAL_FORCE_AT = 6;
+      const SOCIAL_CHANCE = 0.28;
       const socialCooldown = countersRef.current._socialCooldown ?? 0;
       const spawnSocial =
         SOCIAL_MEDIA.length > 0 &&
@@ -1057,13 +1057,13 @@ const PhoneSandbox = forwardRef<
 
       let mediaItem: MediaItem;
       if (spawnSocial) {
-        // Don't repeat the most-recently-shown social if we can help it.
-        const lastSocialId = (shuffleQueuesRef.current.__lastSocialId?.[0] ?? -1);
-        let idx = Math.floor(Math.random() * SOCIAL_MEDIA.length);
-        if (SOCIAL_MEDIA.length > 1 && idx === lastSocialId) {
-          idx = (idx + 1) % SOCIAL_MEDIA.length;
+        // Shuffled queue so every social appears once before any repeats.
+        let socialQueue = shuffleQueuesRef.current.__social;
+        if (!socialQueue || socialQueue.length === 0) {
+          socialQueue = shuffleIndices(SOCIAL_MEDIA.length);
+          shuffleQueuesRef.current.__social = socialQueue;
         }
-        shuffleQueuesRef.current.__lastSocialId = [idx];
+        const idx = socialQueue.pop()!;
         mediaItem = SOCIAL_MEDIA[idx];
         countersRef.current._socialCooldown = 0;
       } else {
