@@ -298,8 +298,7 @@ const INSTAGRAM_MEDIA: MediaItem[] = [
 
 // Social cards — surprise guests that occasionally spawn from any logo
 // instead of the logo's usual media pool. Small circular-ish icons with
-// click-through links. Drop a /substack.png file in public/ and set the
-// URL below to include Substack too.
+// click-through links.
 const SOCIAL_CORNER = 16; // iOS-app-icon corner rounding
 const SOCIAL_WIDTH: [number, number] = [82, 112];
 const SOCIAL_WIDTH_MOBILE: [number, number] = [58, 76];
@@ -312,7 +311,7 @@ const SOCIAL_MEDIA: MediaItem[] = [
     widthRange: SOCIAL_WIDTH,
     mobileWidthRange: SOCIAL_WIDTH_MOBILE,
     cornerRadius: SOCIAL_CORNER,
-    link: "#x", // TODO: paste real X/Twitter URL
+    link: "https://x.com/Flo_lenormand",
   },
   {
     src: "/github.png",
@@ -322,7 +321,7 @@ const SOCIAL_MEDIA: MediaItem[] = [
     widthRange: SOCIAL_WIDTH,
     mobileWidthRange: SOCIAL_WIDTH_MOBILE,
     cornerRadius: SOCIAL_CORNER,
-    link: "#github", // TODO: paste real GitHub URL
+    link: "https://github.com/flo-flo-lenormand",
   },
   {
     src: "/linkedin.png",
@@ -332,7 +331,7 @@ const SOCIAL_MEDIA: MediaItem[] = [
     widthRange: SOCIAL_WIDTH,
     mobileWidthRange: SOCIAL_WIDTH_MOBILE,
     cornerRadius: SOCIAL_CORNER,
-    link: "#linkedin", // TODO: paste real LinkedIn URL
+    link: "https://www.linkedin.com/in/florent-lenormand/",
   },
   {
     src: "/ig.png",
@@ -342,19 +341,18 @@ const SOCIAL_MEDIA: MediaItem[] = [
     widthRange: SOCIAL_WIDTH,
     mobileWidthRange: SOCIAL_WIDTH_MOBILE,
     cornerRadius: SOCIAL_CORNER,
-    link: "#instagram", // TODO: paste real Instagram profile URL
+    link: "https://www.instagram.com/flo_lenormand",
   },
-  // Substack: uncomment after dropping /public/substack.png + real URL.
-  // {
-  //   src: "/substack.png",
-  //   id: "social-substack",
-  //   type: "image",
-  //   aspect: 1,
-  //   widthRange: SOCIAL_WIDTH,
-  //   mobileWidthRange: SOCIAL_WIDTH_MOBILE,
-  //   cornerRadius: SOCIAL_CORNER,
-  //   link: "https://...substack.com",
-  // },
+  {
+    src: "/substack.png",
+    id: "social-substack",
+    type: "image",
+    aspect: 1,
+    widthRange: SOCIAL_WIDTH,
+    mobileWidthRange: SOCIAL_WIDTH_MOBILE,
+    cornerRadius: SOCIAL_CORNER,
+    link: "https://flolenormand.substack.com/",
+  },
 ];
 
 // Fisher–Yates shuffle producing [0, n) in random order. Used by sources
