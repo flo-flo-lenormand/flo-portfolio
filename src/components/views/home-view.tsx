@@ -1489,6 +1489,54 @@ function QuietShowcase({
 
 // Tiny speaker toggle — bottom-right, barely there. Persists mute to
 // localStorage via the sfx module.
+// Tiny social footer — whisper-quiet, bottom-center of the viewport.
+// Brightens slightly on hover. Fill in the hrefs with real profiles.
+function SocialFooter() {
+  const links = [
+    { src: "/linkedin.png", alt: "LinkedIn", href: "#linkedin" },
+    { src: "/github.png", alt: "GitHub", href: "#github" },
+    { src: "/x.png", alt: "X (Twitter)", href: "#x" },
+  ];
+  return (
+    <div
+      aria-label="Social links"
+      className="fixed left-1/2 z-[65] flex items-center gap-3"
+      style={{
+        bottom: "max(10px, env(safe-area-inset-bottom))",
+        transform: "translateX(-50%)",
+      }}
+    >
+      {links.map((l) => (
+        <a
+          key={l.alt}
+          href={l.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={l.alt}
+          className="transition-opacity duration-200"
+          style={{
+            display: "inline-flex",
+            opacity: 0.28,
+            lineHeight: 0,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.28")}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={l.src}
+            alt=""
+            width={14}
+            height={14}
+            style={{ display: "block" }}
+            draggable={false}
+          />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function SoundToggle() {
   const muted = useSyncExternalStore(
     (fn) => sfx.subscribe(fn),
@@ -2039,6 +2087,7 @@ export default function HomeView() {
           <SoundToggle />
         </>
       )}
+      <SocialFooter />
     </>
   );
 }
