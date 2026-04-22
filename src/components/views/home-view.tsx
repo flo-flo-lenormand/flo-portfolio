@@ -1740,12 +1740,26 @@ function useLogoPressSpawner(params: {
   const y = useMotionValue(0);
   const scale = useMotionValue(1);
   const rotate = useMotionValue(0);
+  // Exposed so nudge() can bail out while the user is already interacting.
+  const isIdleRef = useRef(true);
 
   // Keep onSpawn fresh without re-attaching listeners.
   const onSpawnRef = useRef(onSpawn);
   useEffect(() => {
     onSpawnRef.current = onSpawn;
   }, [onSpawn]);
+
+  // Imperative nudge — a small shiver-and-pop animation to remind users the
+  // logo is interactive. No-op during an active press/stream so we never
+  // interrupt the user's own animation.
+  const nudge = useCallback(() => {
+    if (!isIdleRef.current) return;
+    animate(scale, [1, 1.14, 1], {
+      duration: 0.52,
+      ease: [0.2, 0.9, 0.3, 1.2],
+    });
+    animate(rotate, [0, 0.06, -0.06, 0.03, 0], { duration: 0.52 });
+  }, [scale, rotate]);
 
   useEffect(() => {
     if (!ready) return;
@@ -1805,6 +1819,7 @@ function useLogoPressSpawner(params: {
 
     const startStream = () => {
       state = "streaming";
+      isIdleRef.current = false;
       onSpawnRef.current();
       startJitter();
       streamInterval = setInterval(() => onSpawnRef.current(), streamDelay);
@@ -1831,6 +1846,7 @@ function useLogoPressSpawner(params: {
       pointerDown = true;
       pressPointerId = e.pointerId;
       state = "pressed";
+      isIdleRef.current = false;
       e.preventDefault();
       animatePress();
       pressTimer = setTimeout(() => {
@@ -1855,6 +1871,7 @@ function useLogoPressSpawner(params: {
         onSpawnRef.current();
       }
       state = "idle";
+      isIdleRef.current = true;
       animateRelease();
     };
 
@@ -1863,6 +1880,7 @@ function useLogoPressSpawner(params: {
       pressTimer = null;
       stopStream();
       state = "idle";
+      isIdleRef.current = true;
       pointerDown = false;
       pressPointerId = null;
       animateRelease();
@@ -1902,7 +1920,7 @@ function useLogoPressSpawner(params: {
     };
   }, [ready, logoRef, reducedMotion, x, y, scale, rotate]);
 
-  return { x, y, scale, rotate };
+  return { x, y, scale, rotate, nudge };
 }
 
 export default function HomeView() {
@@ -2019,13 +2037,83 @@ export default function HomeView() {
     setMsShowIdx(null);
   }, []);
 
+  // Idle / off-logo nudge — if the user waits too long OR taps somewhere
+  // that isn't a logo, the three logos shiver in sequence to hint "these
+  // are the things to press." Skipped once the pile has items (the user
+  // figured it out) and during reduced motion.
+  useEffect(() => {
+    if (!ready || reducedMotion) return;
+
+    const nudgeInstagram = igLogo.nudge;
+    const nudgeMessenger = messengerLogo.nudge;
+    const nudgeMsl = mslLogo.nudge;
+
+    let lastInteraction = performance.now();
+    let lastNudgeAt = 0;
+    let timeout1: ReturnType<typeof setTimeout> | null = null;
+    let timeout2: ReturnType<typeof setTimeout> | null = null;
+
+    const runNudge = () => {
+      const now = performance.now();
+      if (now - lastNudgeAt < 2000) return; // don't overlap nudges
+      lastNudgeAt = now;
+      nudgeInstagram();
+      if (timeout1) clearTimeout(timeout1);
+      timeout1 = setTimeout(() => nudgeMessenger(), 340);
+      if (timeout2) clearTimeout(timeout2);
+      timeout2 = setTimeout(() => nudgeMsl(), 680);
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      lastInteraction = performance.now();
+      // Only nudge on off-logo taps if the pile is still empty — otherwise
+      // the user has already figured it out and the hint becomes noise.
+      const count = sandboxRef.current?.count() ?? 0;
+      if (count > 0) return;
+      const t = e.target as Element | null;
+      const logoEls = [
+        messengerRef.current,
+        mslRef.current,
+        igRef.current,
+      ];
+      const hitLogo = t && logoEls.some((el) => !!el && el.contains(t));
+      if (!hitLogo) {
+        // Slight delay so the click-catching pointer feedback (if any)
+        // happens first, then the nudge draws the eye.
+        setTimeout(runNudge, 140);
+      }
+    };
+    const onPointerMove = () => {
+      lastInteraction = performance.now();
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+
+    const interval = setInterval(() => {
+      const count = sandboxRef.current?.count() ?? 0;
+      if (count > 0) return;
+      if (performance.now() - lastInteraction > 6500) {
+        runNudge();
+        lastInteraction = performance.now();
+      }
+    }, 1200);
+
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      clearInterval(interval);
+      if (timeout1) clearTimeout(timeout1);
+      if (timeout2) clearTimeout(timeout2);
+    };
+  }, [ready, reducedMotion, igLogo.nudge, messengerLogo.nudge, mslLogo.nudge]);
+
   if (!ready) return null;
 
   return (
     <>
       <motion.p
         ref={textRef}
-        className="text-[18px] sm:text-[22px] font-medium leading-normal text-black text-left"
+        className="text-[17px] sm:text-[22px] font-medium leading-normal text-black text-left"
         style={{
           // Shrink the block to the width of its longest line, then center
           // the whole block horizontally. Text stays left-aligned inside.
