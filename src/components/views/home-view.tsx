@@ -1046,9 +1046,9 @@ const PhoneSandbox = forwardRef<
       //   - FORCE_AT    guaranteed social after this many non-social
       //                 spawns — so an engaged user always sees one
       //   - CHANCE      otherwise random probability per eligible spawn
-      const SOCIAL_MIN_GAP = 2;
-      const SOCIAL_FORCE_AT = 6;
-      const SOCIAL_CHANCE = 0.28;
+      const SOCIAL_MIN_GAP = 1;
+      const SOCIAL_FORCE_AT = 3;
+      const SOCIAL_CHANCE = 0.5;
       const socialCooldown = countersRef.current._socialCooldown ?? 0;
       const spawnSocial =
         SOCIAL_MEDIA.length > 0 &&
@@ -2113,7 +2113,7 @@ export default function HomeView() {
     <>
       <motion.p
         ref={textRef}
-        className="text-[17px] sm:text-[22px] font-medium leading-normal text-black text-left"
+        className="text-[16px] sm:text-[22px] font-medium leading-normal text-black text-left"
         style={{
           // Shrink the block to the width of its longest line, then center
           // the whole block horizontally. Text stays left-aligned inside.
