@@ -2119,7 +2119,11 @@ export default function HomeView() {
           // parent has text-align: center, which centers inline-blocks,
           // so the whole text block is horizontally centered in the
           // viewport. text-left inside keeps the lines reading naturally.
+          // white-space: nowrap prevents browsers from breaking *inside*
+          // a line at the inline-block logo — this used to make the block
+          // size itself to a wrapped sub-line and then wrap the MSL line.
           display: "inline-block",
+          whiteSpace: "nowrap",
           maxWidth: "100%",
         }}
         variants={itemVariants}
