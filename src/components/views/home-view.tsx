@@ -2113,12 +2113,14 @@ export default function HomeView() {
     <>
       <motion.p
         ref={textRef}
-        className="text-[16px] sm:text-[22px] font-medium leading-normal text-black text-left"
+        className="text-[17px] sm:text-[22px] font-medium leading-normal text-black text-left"
         style={{
-          // Fill the centered container so each line has the maximum
-          // available runway to lay out on a single row. The block is
-          // centered in the viewport via the parent flex.
-          width: "100%",
+          // inline-block so the block sizes to its longest line. The
+          // parent has text-align: center, which centers inline-blocks,
+          // so the whole text block is horizontally centered in the
+          // viewport. text-left inside keeps the lines reading naturally.
+          display: "inline-block",
+          maxWidth: "100%",
         }}
         variants={itemVariants}
         initial="hidden"
