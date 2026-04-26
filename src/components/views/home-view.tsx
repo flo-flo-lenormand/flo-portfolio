@@ -2113,7 +2113,7 @@ export default function HomeView() {
     <>
       <motion.p
         ref={textRef}
-        className="text-[16px] sm:text-[22px] font-medium leading-normal text-black text-left"
+        className="text-[15px] sm:text-[22px] font-medium leading-normal text-black text-left"
         style={{
           // Shrink the block to the width of its longest line, then center
           // the whole block horizontally. Text stays left-aligned inside.
