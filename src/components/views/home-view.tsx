@@ -1583,7 +1583,7 @@ function SoundToggle() {
   const muted = useSyncExternalStore(
     (fn) => sfx.subscribe(fn),
     () => sfx.isMuted(),
-    () => true // default muted on SSR
+    () => false // default unmuted on SSR — sound is on by default
   );
 
   const toggle = () => {
